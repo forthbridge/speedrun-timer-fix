@@ -1,7 +1,10 @@
-﻿using Mono.Cecil.Cil;
+﻿using IL.Menu;
+using Mono.Cecil.Cil;
 using MonoMod.Cil;
+using MonoMod.RuntimeDetour;
 using RWCustom;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using static System.Net.Mime.MediaTypeNames;
@@ -23,44 +26,18 @@ namespace SpeedrunTimerFix
                 isInit = true;
 
 
-                On.Menu.SlugcatSelectMenu.MineForSaveData += SlugcatSelectMenu_MineForSaveData;
+                MachineConnector.SetRegisteredOI(Plugin.MOD_ID, Options.instance);
+
+
                 On.Menu.SlugcatSelectMenu.SlugcatPageContinue.ctor += SlugcatPageContinue_ctor;
+                On.StoryGameSession.AppendTimeOnCycleEnd += StoryGameSession_AppendTimeOnCycleEnd;
 
 
-                //On.RainWorldGame.Update += RainWorldGame_Update;
-                //On.SaveState.LoadGame += SaveState_LoadGame;
-                //On.PlayerProgression.SaveWorldStateAndProgression += PlayerProgression_SaveWorldStateAndProgression;
+                On.PlayerProgression.GetOrInitiateSaveState += PlayerProgression_GetOrInitiateSaveState;
+                On.PlayerProgression.SaveWorldStateAndProgression += PlayerProgression_SaveWorldStateAndProgression;
 
-
-                //TimeSpan.FromSeconds(
-                //    // DEATH PERSISTENT
-                //    player.abstractCreature.world.game.GetStorySession.saveState.totTime // Last 2 are added on cycle end, if player is alive
-                //    + player.abstractCreature.world.game.GetStorySession.saveState.deathPersistentSaveData.deathTime // Last 2 are added on cycle end, if the player is dead
-
-                //    // NOT DEATH PERSISTENT
-                //    + player.abstractCreature.world.game.GetStorySession.playerSessionRecords[0].time / 40 // Begins on cycle start, stops when played is dead, or grabbed by enemy (after first UI sound)
-                //    + player.abstractCreature.world.game.GetStorySession.playerSessionRecords[0].playerGrabbedTime / 40); // Begins when played is grabbed by enemy and is not dead (after first UI sound)
-
-
-                //// DEAD OR ECHOED
-                //if (deathOrGhost)
-                //{
-                //    storyGameSession.saveState.deathPersistentSaveData.deathTime += storyGameSession.playerSessionRecords[0].time / 40 + storyGameSession.playerSessionRecords[0].playerGrabbedTime / 40;
-
-
-                //    storyGameSession.playerSessionRecords[0].playerGrabbedTime = 0;
-                //}
-                //// HIBERNATED
-                //else
-                //{
-                //    storyGameSession.saveState.totTime += storyGameSession.playerSessionRecords[0].time / 40;
-                
-                //    storyGameSession.saveState.deathPersistentSaveData.deathTime += storyGameSession.playerSessionRecords[0].playerGrabbedTime / 40;
-                    
-
-
-                //    storyGameSession.playerSessionRecords[0].playerGrabbedTime = 0;
-                //}
+                On.Menu.MainMenu.ExitButtonPressed += MainMenu_ExitButtonPressed;
+                On.Menu.ModdingMenu.Singal += ModdingMenu_Singal;
             }
             catch (Exception ex)
             {
@@ -73,87 +50,193 @@ namespace SpeedrunTimerFix
         }
 
 
-
-        private static Menu.SlugcatSelectMenu.SaveGameData SlugcatSelectMenu_MineForSaveData(On.Menu.SlugcatSelectMenu.orig_MineForSaveData orig, ProcessManager manager, SlugcatStats.Name slugcat)
+        private static readonly Dictionary<int, Dictionary<SlugcatStats.Name, SaveTracker>> savesTracker = new();
+        
+        private class SaveTracker
         {
-            var result = orig(manager, slugcat);
+            public WeakReference<SaveState>? saveState;
 
-            if (result == null) return result!;
-
-            SaveState? starvedSaveState = manager.rainWorld.progression?.starvedSaveState;
-            if (starvedSaveState == null) return result;
-
-
-            result.gameTimeAlive = starvedSaveState.totTime;
-            
-            if (starvedSaveState.deathPersistentSaveData != null) 
-                result.gameTimeDead = starvedSaveState.deathPersistentSaveData.deathTime;
-
-            return result;
+            public int startTime = 0;
+            public int starveTime = 0;
         }
+        
+        private static SaveTracker GetSaveTracker(int saveSlot, SlugcatStats.Name saveStateNumber)
+        {
+            if (!savesTracker.ContainsKey(saveSlot))
+                savesTracker[saveSlot] = new Dictionary<SlugcatStats.Name, SaveTracker>();
+
+            if (!savesTracker[saveSlot].ContainsKey(saveStateNumber))
+                savesTracker[saveSlot][saveStateNumber] = new SaveTracker();
+
+            return savesTracker[saveSlot][saveStateNumber];
+        }
+
+        private static void SaveToDisk(PlayerProgression self, SaveTracker saveTracker)
+        {
+            if (saveTracker.saveState == null || !saveTracker.saveState.TryGetTarget(out var saveState)) return;
+            
+            var prevSaveState = self.currentSaveState;
+
+
+            self.currentSaveState = saveState;
+            self.SaveToDisk(true, false, false);
+           
+
+            self.currentSaveState = prevSaveState;
+        }
+
+        private static void ConvertStarveTimeToDeathTime(PlayerProgression self)
+        {
+            foreach (Dictionary<SlugcatStats.Name, SaveTracker> saveStateNumberTrackerPair in savesTracker.Values)
+            {
+                foreach (SaveTracker saveTracker in saveStateNumberTrackerPair.Values)
+                {
+                    if (saveTracker.saveState == null) continue;
+
+                    if (!saveTracker.saveState.TryGetTarget(out var saveState)) continue;
+
+                    saveState.totTime -= saveTracker.starveTime;
+                    saveState.deathPersistentSaveData.deathTime += saveTracker.starveTime;
+
+                    saveTracker.starveTime = 0;
+
+                    SaveToDisk(self, saveTracker);
+                }
+            }
+        }
+
+
+
 
         private static void SlugcatPageContinue_ctor(On.Menu.SlugcatSelectMenu.SlugcatPageContinue.orig_ctor orig, Menu.SlugcatSelectMenu.SlugcatPageContinue self, Menu.Menu menu, Menu.MenuObject owner, int pageIndex, SlugcatStats.Name slugcatNumber)
         {
             orig(self, menu, owner, pageIndex, slugcatNumber);
 
-            // Replace existing select menu timer
-            TimeSpan timeSpan = TimeSpan.FromSeconds((double)self.saveGameData.gameTimeAlive + self.saveGameData.gameTimeDead);
-            string textToRemove = " (" + MoreSlugcats.SpeedRunTimer.TimeFormat(timeSpan) + ")";
-
-            bool formatTime = false;
-
-            string survivedCycleTime = formatTime ? MoreSlugcats.SpeedRunTimer.TimeFormat(TimeSpan.FromSeconds(self.saveGameData.gameTimeAlive)) : self.saveGameData.gameTimeAlive + "s";
-            string lostCycleTime = formatTime ? MoreSlugcats.SpeedRunTimer.TimeFormat(TimeSpan.FromSeconds(self.saveGameData.gameTimeDead)) : self.saveGameData.gameTimeDead + "s";
-
-            string textToAdd = $"\n(Survived: {survivedCycleTime} - Lost: {lostCycleTime})";
+            if (!Options.extraTimers.Value) return;
+            
+            if (self.saveGameData.shelterName == null || self.saveGameData.shelterName.Length <= 2) return;
 
 
-            self.regionLabel.text = self.regionLabel.text.Replace(textToRemove, textToAdd);
+            string completedCycleTIme = Options.formatExtraTimers.Value ? MoreSlugcats.SpeedRunTimer.TimeFormat(TimeSpan.FromSeconds(self.saveGameData.gameTimeAlive)) : self.saveGameData.gameTimeAlive + "s";
+            string lostCycleTime = Options.formatExtraTimers.Value ? MoreSlugcats.SpeedRunTimer.TimeFormat(TimeSpan.FromSeconds(self.saveGameData.gameTimeDead)) : self.saveGameData.gameTimeDead + "s";
+
+            self.regionLabel.text += $"\n(Completed: {completedCycleTIme} - Lost: {lostCycleTime})";
         }
 
 
 
+        private static void MainMenu_ExitButtonPressed(On.Menu.MainMenu.orig_ExitButtonPressed orig, Menu.MainMenu self)
+        {
+            ConvertStarveTimeToDeathTime(self.manager.rainWorld.progression);
+
+            orig(self);
+        }
+
+        private static void ModdingMenu_Singal(On.Menu.ModdingMenu.orig_Singal orig, Menu.ModdingMenu self, Menu.MenuObject sender, string message)
+        {
+            if (message == "RESTART")
+                ConvertStarveTimeToDeathTime(self.manager.rainWorld.progression);
+
+            orig(self, sender, message);
+        }
+
+        private static void StoryGameSession_AppendTimeOnCycleEnd(On.StoryGameSession.orig_AppendTimeOnCycleEnd orig, StoryGameSession self, bool deathOrGhost)
+        {
+            orig(self, deathOrGhost);
+
+            if (deathOrGhost)
+            {
+                ConvertStarveTimeToDeathTime(self.game.rainWorld.progression);
+                return;
+            }
+
+            //PlayerProgression progression = self.game.rainWorld.progression;
+
+            //SlugcatStats.Name? saveStateNumber = progression.currentSaveState != null ? progression.currentSaveState.saveStateNumber : progression.starvedSaveState != null ? progression.starvedSaveState.saveStateNumber : null;
+            //if (saveStateNumber == null) return;
+
+            //SaveTracker saveTracker = GetSaveTracker(self.game.rainWorld.options.saveSlot, saveStateNumber);
+            //saveTracker.starveTime = 0;
+        }
+
+
+
+        private static SaveState PlayerProgression_GetOrInitiateSaveState(On.PlayerProgression.orig_GetOrInitiateSaveState orig, PlayerProgression self, SlugcatStats.Name saveStateNumber, RainWorldGame game, ProcessManager.MenuSetup setup, bool saveAsDeathOrQuit)
+        {
+            Plugin.Logger.LogWarning("Tracking save...");
+            var result = orig(self, saveStateNumber, game, setup, saveAsDeathOrQuit);
+
+            SaveTracker saveTracker = GetSaveTracker(self.rainWorld.options.saveSlot, saveStateNumber);
+
+            if (saveTracker.saveState == null)
+                saveTracker.saveState = new WeakReference<SaveState>(result);
+            
+            else
+                saveTracker.saveState.SetTarget(result);
+
+
+            if (!saveTracker.saveState.TryGetTarget(out SaveState saveState)) return result;
+            saveTracker.startTime = saveState.totTime;
+
+
+            return result;
+        }
 
         private static bool PlayerProgression_SaveWorldStateAndProgression(On.PlayerProgression.orig_SaveWorldStateAndProgression orig, PlayerProgression self, bool malnourished)
         {
             bool result = orig(self, malnourished);
 
-            if (self.starvedSaveState == null) return result;
+            SlugcatStats.Name? saveStateNumber = self.currentSaveState != null ? self.currentSaveState.saveStateNumber : self.starvedSaveState != null ? self.starvedSaveState.saveStateNumber : null;
+            if (saveStateNumber == null) return result;
 
-            Plugin.Logger.LogWarning("TOTAL TIME: " + self.starvedSaveState.totTime);
-            Plugin.Logger.LogWarning("DEATH TIME  " + self.starvedSaveState.deathPersistentSaveData.deathTime);
+            SaveTracker saveTracker = GetSaveTracker(self.rainWorld.options.saveSlot, saveStateNumber);
+            saveTracker.starveTime = 0;
+
+
+            if (!malnourished) return result;
+            
+            if (self.starvedSaveState == null || saveTracker.saveState == null) return result;
+
+            if (!saveTracker.saveState.TryGetTarget(out var saveState)) return result;
+
+       
+            Plugin.Logger.LogWarning("Saving starve time...");
+
+            saveTracker.starveTime = self.starvedSaveState.totTime - saveTracker.startTime;
+            saveState.totTime = self.starvedSaveState.totTime;
+
+            SaveToDisk(self, saveTracker);
 
             return result;
         }
-
-        private static void SaveState_LoadGame(On.SaveState.orig_LoadGame orig, SaveState self, string str, RainWorldGame game)
-        {
-            orig(self, str, game);
-
-            Plugin.Logger.LogWarning("TOTAL TIME: " + self.totTime);
-        }
-
-        private static int frameCounter = 0;
-
-        private static void RainWorldGame_Update(On.RainWorldGame.orig_Update orig, RainWorldGame self)
-        {
-            orig(self);
-
-            frameCounter++;
-
-            if (frameCounter % 40 != 0) return;
-
-
-            Plugin.Logger.LogWarning("--------");
-
-            Plugin.Logger.LogWarning($"Total Time: {self.GetStorySession.saveState.totTime}");
-            Plugin.Logger.LogWarning($"Death Time: {self.GetStorySession.saveState.deathPersistentSaveData.deathTime}");
-
-
-            if (self.GetStorySession.playerSessionRecords.Length == 0) return;
-
-            Plugin.Logger.LogWarning($"Session Time: {self.GetStorySession.playerSessionRecords[0].time / 40}");
-            Plugin.Logger.LogWarning($"Grabbed Time: {self.GetStorySession.playerSessionRecords[0].playerGrabbedTime / 40}");
-        }
     }
 }
+
+
+// Notes on the timer...
+
+//TimeSpan.FromSeconds(
+//    // DEATH PERSISTENT
+//    player.abstractCreature.world.game.GetStorySession.saveState.totTime // Last 2 are added on cycle end, if player is alive
+//    + player.abstractCreature.world.game.GetStorySession.saveState.deathPersistentSaveData.deathTime // Last 2 are added on cycle end, if the player is dead
+
+//    // NOT DEATH PERSISTENT
+//    + player.abstractCreature.world.game.GetStorySession.playerSessionRecords[0].time / 40 // Begins on cycle start, stops when played is dead, or grabbed by enemy (after first UI sound)
+//    + player.abstractCreature.world.game.GetStorySession.playerSessionRecords[0].playerGrabbedTime / 40); // Begins when played is grabbed by enemy and is not dead (after first UI sound)
+
+
+
+//// DEAD OR ECHOED
+//if (deathOrGhost)
+//{
+//    storyGameSession.saveState.deathPersistentSaveData.deathTime += storyGameSession.playerSessionRecords[0].time / 40 + storyGameSession.playerSessionRecords[0].playerGrabbedTime / 40;
+//    storyGameSession.playerSessionRecords[0].playerGrabbedTime = 0;
+//}
+
+//// HIBERNATED
+//else
+//{
+//    storyGameSession.saveState.totTime += storyGameSession.playerSessionRecords[0].time / 40;
+//    storyGameSession.saveState.deathPersistentSaveData.deathTime += storyGameSession.playerSessionRecords[0].playerGrabbedTime / 40;
+//    storyGameSession.playerSessionRecords[0].playerGrabbedTime = 0;
+//}
