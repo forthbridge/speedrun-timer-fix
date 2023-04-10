@@ -29,6 +29,7 @@ namespace SpeedrunTimerFix
         private readonly float fontHeight = 20f;
         private readonly int numberOfCheckboxes = 2;
         private readonly float checkBoxSize = 60.0f;
+
         private float CheckBoxWithSpacing => checkBoxSize + 0.25f * spacing;
 
 
@@ -41,11 +42,6 @@ namespace SpeedrunTimerFix
         private readonly List<OpLabel> checkBoxesTextLabels = new();
 
         private readonly List<OpLabel> textLabels = new();
-
-        private readonly List<Configurable<float>> floatSliderConfigurables = new();
-        private readonly List<string> floatSliderMainTextLabels = new();
-        private readonly List<OpLabel> floatSliderTextLabelsLeft = new();
-        private readonly List<OpLabel> floatSliderTextLabelsRight = new();
 
         #endregion
 
@@ -102,7 +98,7 @@ namespace SpeedrunTimerFix
 
         private void AddNewLine(float spacingModifier = 1f)
         {
-            pos.x = marginX.x; // left margin
+            pos.x = marginX.x;
             pos.y -= spacingModifier * spacing;
         }
 
@@ -127,23 +123,6 @@ namespace SpeedrunTimerFix
             boxEndPositions.RemoveAt(lastIndex);
         }
 
-
-        private void DrawKeybinder(Configurable<KeyCode> configurable, ref OpTab tab)
-        {
-            string name = (string)configurable.info.Tags[0];
-
-            tab.AddItems(
-                new OpLabel(new Vector2(115.0f, pos.y), new Vector2(100f, 34f), name)
-                {
-                    alignment = FLabelAlignment.Right,
-                    verticalAlignment = OpLabel.LabelVAlignment.Center,
-                    description = configurable.info?.description
-                },
-                new OpKeyBinder(configurable, new Vector2(235.0f, pos.y), new Vector2(146f, 30f), false)
-            );
-
-            AddNewLine(2);
-        }
 
 
         private void AddCheckBox(Configurable<bool> configurable, string text)
@@ -229,61 +208,6 @@ namespace SpeedrunTimerFix
 
             pos.x = marginX.x;
             textLabels.Clear();
-        }
-
-
-        private void AddFloatSlider(Configurable<float> configurable, string text, string sliderTextLeft = "", string sliderTextRight = "")
-        {
-            floatSliderConfigurables.Add(configurable);
-            floatSliderMainTextLabels.Add(text);
-            floatSliderTextLabelsLeft.Add(new OpLabel(new Vector2(), new Vector2(), sliderTextLeft, alignment: FLabelAlignment.Right)); // set pos and size when drawing
-            floatSliderTextLabelsRight.Add(new OpLabel(new Vector2(), new Vector2(), sliderTextRight, alignment: FLabelAlignment.Left));
-        }
-
-        private void DrawFloatSliders(ref OpTab tab)
-        {
-            if (floatSliderConfigurables.Count != floatSliderMainTextLabels.Count) return;
-            if (floatSliderConfigurables.Count != floatSliderTextLabelsLeft.Count) return;
-            if (floatSliderConfigurables.Count != floatSliderTextLabelsRight.Count) return;
-
-            float width = marginX.y - marginX.x;
-            float sliderCenter = marginX.x + 0.5f * width;
-            float sliderLabelSizeX = 0.2f * width;
-            float sliderSizeX = width - 2.0f * sliderLabelSizeX - spacing;
-
-            for (int sliderIndex = 0; sliderIndex < floatSliderConfigurables.Count; ++sliderIndex)
-            {
-                AddNewLine(2.0f);
-
-                OpLabel opLabel = floatSliderTextLabelsLeft[sliderIndex];
-                opLabel.pos = new Vector2(marginX.x, pos.y + 5.0f);
-                opLabel.size = new Vector2(sliderLabelSizeX, fontHeight);
-                tab.AddItems(opLabel);
-
-                Configurable<float> configurable = floatSliderConfigurables[sliderIndex];
-                OpFloatSlider slider = new(configurable, new Vector2(sliderCenter - 0.5f * sliderSizeX, pos.y), (int)sliderSizeX, 2)
-                {
-                    size = new Vector2(sliderSizeX, fontHeight),
-                    description = configurable.info?.description ?? ""
-                };
-                tab.AddItems(slider);
-
-                opLabel = floatSliderTextLabelsRight[sliderIndex];
-                opLabel.pos = new Vector2(sliderCenter + 0.5f * sliderSizeX + 0.5f * spacing, pos.y + 5f);
-                opLabel.size = new Vector2(sliderLabelSizeX, fontHeight);
-                tab.AddItems(opLabel);
-
-                AddTextLabel(floatSliderMainTextLabels[sliderIndex]);
-                DrawTextLabels(ref tab);
-
-                if (sliderIndex < floatSliderConfigurables.Count - 1)
-                    AddNewLine();
-            }
-
-            floatSliderConfigurables.Clear();
-            floatSliderMainTextLabels.Clear();
-            floatSliderTextLabelsLeft.Clear();
-            floatSliderTextLabelsRight.Clear();
         }
 
         #endregion

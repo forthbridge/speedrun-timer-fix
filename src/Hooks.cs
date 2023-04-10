@@ -1,13 +1,5 @@
-﻿using IL.Menu;
-using Mono.Cecil.Cil;
-using MonoMod.Cil;
-using MonoMod.RuntimeDetour;
-using RWCustom;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using UnityEngine;
-using static System.Net.Mime.MediaTypeNames;
 
 
 namespace SpeedrunTimerFix
@@ -50,6 +42,8 @@ namespace SpeedrunTimerFix
         }
 
 
+
+        // Save Tracker
         private static readonly Dictionary<int, Dictionary<SlugcatStats.Name, SaveTracker>> savesTracker = new();
         
         private class SaveTracker
@@ -105,9 +99,9 @@ namespace SpeedrunTimerFix
             }
         }
 
+        
 
-
-
+        // Adds extra timing information to the slugcat select menu, helps a lot with debugging
         private static void SlugcatPageContinue_ctor(On.Menu.SlugcatSelectMenu.SlugcatPageContinue.orig_ctor orig, Menu.SlugcatSelectMenu.SlugcatPageContinue self, Menu.Menu menu, Menu.MenuObject owner, int pageIndex, SlugcatStats.Name slugcatNumber)
         {
             orig(self, menu, owner, pageIndex, slugcatNumber);
@@ -125,6 +119,7 @@ namespace SpeedrunTimerFix
 
 
 
+        // Starved saves are considered dead at these points, have them be converted
         private static void MainMenu_ExitButtonPressed(On.Menu.MainMenu.orig_ExitButtonPressed orig, Menu.MainMenu self)
         {
             ConvertStarveTimeToDeathTime(self.manager.rainWorld.progression);
@@ -150,6 +145,9 @@ namespace SpeedrunTimerFix
                 return;
             }
 
+            // The following should be unecessary considering the starve timer is reset whenever the game is saved
+            // I will keep it around, just in case...
+
             //PlayerProgression progression = self.game.rainWorld.progression;
 
             //SlugcatStats.Name? saveStateNumber = progression.currentSaveState != null ? progression.currentSaveState.saveStateNumber : progression.starvedSaveState != null ? progression.starvedSaveState.saveStateNumber : null;
@@ -161,6 +159,7 @@ namespace SpeedrunTimerFix
 
 
 
+        // Attach the tracker when a save is initialized, update the start time when it is loaded
         private static SaveState PlayerProgression_GetOrInitiateSaveState(On.PlayerProgression.orig_GetOrInitiateSaveState orig, PlayerProgression self, SlugcatStats.Name saveStateNumber, RainWorldGame game, ProcessManager.MenuSetup setup, bool saveAsDeathOrQuit)
         {
             Plugin.Logger.LogWarning("Tracking save...");
@@ -182,6 +181,7 @@ namespace SpeedrunTimerFix
             return result;
         }
 
+        // Track starving saves
         private static bool PlayerProgression_SaveWorldStateAndProgression(On.PlayerProgression.orig_SaveWorldStateAndProgression orig, PlayerProgression self, bool malnourished)
         {
             bool result = orig(self, malnourished);
