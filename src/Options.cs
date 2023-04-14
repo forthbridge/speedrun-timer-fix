@@ -13,6 +13,11 @@ namespace SpeedrunTimerFix
 
         #region Options
 
+        public static Configurable<bool> includeMilliseconds = instance.config.Bind("includeMilliseconds", false, new ConfigurableInfo(
+            "When checked, timers will include milliseconds.",
+            null, "", "Include Milliseconds?"));
+
+
         public static Configurable<bool> extraTimers = instance.config.Bind("extraTimers", true, new ConfigurableInfo(
             "When checked, adds additional timing info onto the slugcat select menu.",
             null, "", "Extra Timers?"));
@@ -20,6 +25,7 @@ namespace SpeedrunTimerFix
         public static Configurable<bool> formatExtraTimers = instance.config.Bind("formatExtraTimers", true, new ConfigurableInfo(
             "When checked, the extra timers will be formatted in Hours:Minutes:Seconds. When unchecked, they will only show seconds.",
             null, "", "Format Extra Timers?"));
+
 
         #endregion
 
@@ -57,11 +63,15 @@ namespace SpeedrunTimerFix
 
             AddTab(ref tabIndex, "General");
 
+            AddCheckBox(includeMilliseconds, (string)includeMilliseconds.info.Tags[0]);
+            DrawCheckBoxes(ref Tabs[tabIndex]);
+
+
             AddCheckBox(extraTimers, (string)extraTimers.info.Tags[0]);
             AddCheckBox(formatExtraTimers, (string)formatExtraTimers.info.Tags[0]);
             DrawCheckBoxes(ref Tabs[tabIndex]);
             
-            AddNewLine(18);
+            AddNewLine(15);
             
 
             DrawBox(ref Tabs[tabIndex]);
