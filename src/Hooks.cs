@@ -64,6 +64,10 @@ namespace SpeedrunTimerFix
         private static void SpeedRunTimer_Update(On.MoreSlugcats.SpeedRunTimer.orig_Update orig, MoreSlugcats.SpeedRunTimer self)
         {
             float lastPosX = self.pos.x;
+            float lastFade = self.fade;
+
+            if (Options.dontFade.Value)
+                self.fade = 0.0f;
 
             orig(self);
 
@@ -76,22 +80,32 @@ namespace SpeedrunTimerFix
             SaveTracker tracker = GetSaveTracker(progression.rainWorld.options.saveSlot, saveStateNumber);
 
 
-            if (!Options.includeMilliseconds.Value) return;
+            if (Options.includeMilliseconds.Value)
+            {
+                if (!RainWorld.lockGameTimer)
+                {
+                    int totTime = self.ThePlayer().abstractCreature.world.game.GetStorySession.playerSessionRecords[0].time;
+                    tracker.totalTimeMilliseconds = ((totTime % 40) / 40.0f) * 1000;
 
-            int totTime = self.ThePlayer().abstractCreature.world.game.GetStorySession.playerSessionRecords[0].time;
-            tracker.totalTimeMilliseconds = ((totTime % 40) / 40.0f) * 1000;
+                    int deathTime = self.ThePlayer().abstractCreature.world.game.GetStorySession.playerSessionRecords[0].playerGrabbedTime;
+                    tracker.deathTimeMilliseconds = ((deathTime % 40) / 40.0f) * 1000;
+
+                    self.timeLabel.text += $":{(tracker.totalTimeMilliseconds + tracker.deathTimeMilliseconds).ToString().PadLeft(3, '0')}ms";
+                }
+
+                self.lastPos.x = lastPosX;
+                self.pos.x = (int)(self.hud.rainWorld.options.ScreenSize.x / 2.0f) + 0.2f - 100.0f;
+            }
 
 
-            int deathTime = self.ThePlayer().abstractCreature.world.game.GetStorySession.playerSessionRecords[0].playerGrabbedTime;
-            tracker.deathTimeMilliseconds = ((deathTime % 40) / 40.0f) * 1000;
+            if (Options.dontFade.Value)
+            {
+                self.lastFade = lastFade;
+                self.fade = 1.0f;
+            }
 
 
-            if (!RainWorld.lockGameTimer)
-                self.timeLabel.text += $":{(tracker.totalTimeMilliseconds + tracker.deathTimeMilliseconds).ToString().PadLeft(3, '0')}ms";
-
-
-            self.lastPos.x = lastPosX;
-            self.pos.x = (int)(self.hud.rainWorld.options.ScreenSize.x / 2.0f) + 0.2f - 100.0f;
+            self.timeLabel.color = Options.timerColor.Value;
         }
 
 
@@ -103,11 +117,11 @@ namespace SpeedrunTimerFix
         {
             public int startTime = 0;
 
-            public float totalTimeCorrection = 0.0f;
-            public float deathTimeCorrection = 0.0f;
-
             public float totalTimeMilliseconds = 0.0f;
             public float deathTimeMilliseconds = 0.0f;
+
+            public int totalTimeCorrection = 0;
+            public int deathTimeCorrection = 0;
         }
         
         private static SaveTracker GetSaveTracker(int saveSlot, SlugcatStats.Name saveStateNumber)
@@ -157,6 +171,11 @@ namespace SpeedrunTimerFix
             return result;
         }
 
+        private static void ApplyTimeCorrection(SaveTracker tracker, SaveState saveState)
+        {
+            saveState.totTime = saveState.totTime - tracker.totalTimeCorrection;
+        }
+
 
 
         private static string SaveTrackerFilePath => Path.Combine(Custom.LegacyRootFolderDirectory(), Plugin.MOD_ID + "_saveTrackers.txt");
@@ -184,7 +203,7 @@ namespace SpeedrunTimerFix
                 foreach (SaveTracker tracker in nameTrackerPair.Values)
                 {
                     tracker.deathTimeMilliseconds = tracker.totalTimeCorrection;
-                    tracker.totalTimeCorrection = 0.0f;
+                    tracker.totalTimeCorrection = 0;
                 }
             }
 
@@ -253,32 +272,3 @@ namespace SpeedrunTimerFix
 
     }
 }
-
-
-// Notes on the timer...
-
-//TimeSpan.FromSeconds(
-//    // DEATH PERSISTENT
-//    player.abstractCreature.world.game.GetStorySession.saveState.totTime // Last 2 are added on cycle end, if player is alive
-//    + player.abstractCreature.world.game.GetStorySession.saveState.deathPersistentSaveData.deathTime // Last 2 are added on cycle end, if the player is dead
-
-//    // NOT DEATH PERSISTENT
-//    + player.abstractCreature.world.game.GetStorySession.playerSessionRecords[0].time / 40 // Begins on cycle start, stops when played is dead, or grabbed by enemy (after first UI sound)
-//    + player.abstractCreature.world.game.GetStorySession.playerSessionRecords[0].playerGrabbedTime / 40); // Begins when played is grabbed by enemy and is not dead (after first UI sound)
-
-
-
-//// DEAD OR ECHOED
-//if (deathOrGhost)
-//{
-//    storyGameSession.saveState.deathPersistentSaveData.deathTime += storyGameSession.playerSessionRecords[0].time / 40 + storyGameSession.playerSessionRecords[0].playerGrabbedTime / 40;
-//    storyGameSession.playerSessionRecords[0].playerGrabbedTime = 0;
-//}
-
-//// HIBERNATED
-//else
-//{
-//    storyGameSession.saveState.totTime += storyGameSession.playerSessionRecords[0].time / 40;
-//    storyGameSession.saveState.deathPersistentSaveData.deathTime += storyGameSession.playerSessionRecords[0].playerGrabbedTime / 40;
-//    storyGameSession.playerSessionRecords[0].playerGrabbedTime = 0;
-//}

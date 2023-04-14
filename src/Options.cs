@@ -13,9 +13,13 @@ namespace SpeedrunTimerFix
 
         #region Options
 
-        public static Configurable<bool> includeMilliseconds = instance.config.Bind("includeMilliseconds", false, new ConfigurableInfo(
+        public static Configurable<bool> includeMilliseconds = instance.config.Bind("includeMilliseconds", true, new ConfigurableInfo(
             "When checked, timers will include milliseconds.",
             null, "", "Include Milliseconds?"));
+
+        public static Configurable<bool> dontFade = instance.config.Bind("dontFade", false, new ConfigurableInfo(
+            "When checked, the timer won't fade out, making it more visible all the time.",
+            null, "", "Don't Fade?"));
 
 
         public static Configurable<bool> extraTimers = instance.config.Bind("extraTimers", true, new ConfigurableInfo(
@@ -25,6 +29,11 @@ namespace SpeedrunTimerFix
         public static Configurable<bool> formatExtraTimers = instance.config.Bind("formatExtraTimers", true, new ConfigurableInfo(
             "When checked, the extra timers will be formatted in Hours:Minutes:Seconds. When unchecked, they will only show seconds.",
             null, "", "Format Extra Timers?"));
+
+
+        public static readonly Configurable<Color> timerColor = instance.config.Bind("timerColor", Color.white, new ConfigurableInfo(
+            "...",
+            null, "", "Timer Color"));
 
 
         #endregion
@@ -64,6 +73,7 @@ namespace SpeedrunTimerFix
             AddTab(ref tabIndex, "General");
 
             AddCheckBox(includeMilliseconds, (string)includeMilliseconds.info.Tags[0]);
+            AddCheckBox(dontFade, (string)dontFade.info.Tags[0]);
             DrawCheckBoxes(ref Tabs[tabIndex]);
 
 
@@ -71,8 +81,13 @@ namespace SpeedrunTimerFix
             AddCheckBox(formatExtraTimers, (string)formatExtraTimers.info.Tags[0]);
             DrawCheckBoxes(ref Tabs[tabIndex]);
             
-            AddNewLine(15);
-            
+            AddNewLine(6);
+
+
+            Vector2 offset = new(0.0f, -150.0f);
+
+            var _timerColor = new OpColorPicker(timerColor, new Vector2(225f + offset.x, 159.0f + offset.y));
+            Tabs[tabIndex].AddItems(_timerColor, new OpLabel(new Vector2(225f + offset.x, 317.0f + offset.y), new Vector2(150.0f + offset.x, 16.0f + offset.y), timerColor.info.Tags[0].ToString()));
 
             DrawBox(ref Tabs[tabIndex]);
         }
