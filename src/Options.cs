@@ -26,9 +26,9 @@ namespace SpeedrunTimerFix
             "When checked, adds additional timing info onto the slugcat select menu.",
             null, "", "Extra Timers?"));
 
-        public static Configurable<bool> formatExtraTimers = instance.config.Bind("formatExtraTimers", true, new ConfigurableInfo(
-            "When checked, the extra timers will be formatted in Hours:Minutes:Seconds. When unchecked, they will only show seconds.",
-            null, "", "Format Extra Timers?"));
+        public static Configurable<bool> formatTimers = instance.config.Bind("formatTimers", true, new ConfigurableInfo(
+            "When checked, timers will be formatted in Hours:Minutes:Seconds:Milliseconds. When unchecked, they will only show milliseconds.",
+            null, "", "Format Timers?"));
 
 
         public static readonly Configurable<Color> timerColor = instance.config.Bind("timerColor", Color.white, new ConfigurableInfo(
@@ -78,7 +78,7 @@ namespace SpeedrunTimerFix
 
 
             AddCheckBox(extraTimers, (string)extraTimers.info.Tags[0]);
-            AddCheckBox(formatExtraTimers, (string)formatExtraTimers.info.Tags[0]);
+            AddCheckBox(formatTimers, (string)formatTimers.info.Tags[0]);
             DrawCheckBoxes(ref Tabs[tabIndex]);
             
             AddNewLine(6);
