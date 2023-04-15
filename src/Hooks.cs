@@ -1,10 +1,12 @@
-﻿using Kittehface.Framework20;
+﻿using IL.Menu;
+using Kittehface.Framework20;
 using RWCustom;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Web.Script.Serialization;
 using UnityEngine;
 
 namespace SpeedrunTimerFix
@@ -38,6 +40,8 @@ namespace SpeedrunTimerFix
 
                 On.MoreSlugcats.SpeedRunTimer.Update += SpeedRunTimer_Update;
                 On.MoreSlugcats.SpeedRunTimer.Draw += SpeedRunTimer_Draw;
+
+                LoadTrackerFromDisk();
             }
             catch (Exception ex)
             {
@@ -77,20 +81,18 @@ namespace SpeedrunTimerFix
             SlugcatStats.Name? saveStateNumber = progression.currentSaveState != null ? progression.currentSaveState.saveStateNumber : progression.starvedSaveState?.saveStateNumber;
             if (saveStateNumber == null) return;
 
-            SaveTracker tracker = GetSaveTracker(progression.rainWorld.options.saveSlot, saveStateNumber);
+            SaveTracker tracker = GetSaveTracker(progression.rainWorld.options.saveSlot, saveStateNumber.value);
 
 
             if (Options.includeMilliseconds.Value)
             {
                 if (!RainWorld.lockGameTimer)
                 {
-                    int totTime = self.ThePlayer().abstractCreature.world.game.GetStorySession.playerSessionRecords[0].time;
-                    tracker.totalTimeMilliseconds = ((totTime % 40) / 40.0f) * 1000;
+                    int totalTime = self.ThePlayer().abstractCreature.world.game.GetStorySession.playerSessionRecords[0].time + self.ThePlayer().abstractCreature.world.game.GetStorySession.playerSessionRecords[0].playerGrabbedTime;
 
-                    int deathTime = self.ThePlayer().abstractCreature.world.game.GetStorySession.playerSessionRecords[0].playerGrabbedTime;
-                    tracker.deathTimeMilliseconds = ((deathTime % 40) / 40.0f) * 1000;
+                    tracker.undeterminedMilliseconds = (int)((totalTime % 40 / 40.0f) * 1000.0f);
 
-                    self.timeLabel.text += $":{(tracker.totalTimeMilliseconds + tracker.deathTimeMilliseconds).ToString().PadLeft(3, '0')}ms";
+                    self.timeLabel.text += $":{(tracker.undeterminedMilliseconds).ToString().PadLeft(3, '0')}ms";
                 }
 
                 self.lastPos.x = lastPosX;
@@ -111,28 +113,30 @@ namespace SpeedrunTimerFix
 
 
         // Save Tracker
-        private static Dictionary<int, Dictionary<SlugcatStats.Name, SaveTracker>> saveTrackers = new();
+        private static Dictionary<int, Dictionary<string, SaveTracker>> saveTrackers = new();
         
         private class SaveTracker
         {
             public int startTime = 0;
 
-            public float totalTimeMilliseconds = 0.0f;
-            public float deathTimeMilliseconds = 0.0f;
-
-            public int totalTimeCorrection = 0;
+            public int aliveTimeCorrection = 0;
             public int deathTimeCorrection = 0;
+
+            public int undeterminedMilliseconds = 0;
+
+            public int aliveTimeMilliseconds = 0;
+            public int deathTimeMilliseconds = 0;
         }
         
-        private static SaveTracker GetSaveTracker(int saveSlot, SlugcatStats.Name saveStateNumber)
+        private static SaveTracker GetSaveTracker(int saveSlot, string slugcat)
         {
             if (!saveTrackers.ContainsKey(saveSlot))
                 saveTrackers[saveSlot] = new();
 
-            if (!saveTrackers[saveSlot].ContainsKey(saveStateNumber))
-                saveTrackers[saveSlot][saveStateNumber] = new SaveTracker();
+            if (!saveTrackers[saveSlot].ContainsKey(slugcat))
+                saveTrackers[saveSlot][slugcat] = new SaveTracker();
 
-            return saveTrackers[saveSlot][saveStateNumber];
+            return saveTrackers[saveSlot][slugcat];
         }
 
         
@@ -140,14 +144,21 @@ namespace SpeedrunTimerFix
         // Attach the tracker when a save is initialized, update the start time when it is loaded
         private static SaveState PlayerProgression_GetOrInitiateSaveState(On.PlayerProgression.orig_GetOrInitiateSaveState orig, PlayerProgression self, SlugcatStats.Name saveStateNumber, RainWorldGame game, ProcessManager.MenuSetup setup, bool saveAsDeathOrQuit)
         {
-            SaveState result = orig(self, saveStateNumber, game, setup, saveAsDeathOrQuit);
+            SaveState saveState = orig(self, saveStateNumber, game, setup, saveAsDeathOrQuit);
 
             Plugin.Logger.LogWarning("Tracking save...");
-            SaveTracker tracker = GetSaveTracker(self.rainWorld.options.saveSlot, saveStateNumber);
+            SaveTracker tracker = GetSaveTracker(self.rainWorld.options.saveSlot, saveStateNumber.value);
+            tracker.startTime = saveState.totTime;
 
-            tracker.startTime = result.totTime;
+            saveState.totTime += tracker.aliveTimeCorrection;
+            saveState.deathPersistentSaveData.deathTime += tracker.deathTimeCorrection;
 
-            return result;
+            tracker.aliveTimeCorrection = 0;
+            tracker.deathTimeCorrection = 0;
+
+            tracker.undeterminedMilliseconds = tracker.aliveTimeMilliseconds + tracker.deathTimeMilliseconds;
+
+            return saveState;
         }
 
         // Track starving saves
@@ -155,45 +166,138 @@ namespace SpeedrunTimerFix
         {
             bool result = orig(self, malnourished);
 
-
             SaveState? saveState = self.currentSaveState ?? self.starvedSaveState;
             if (saveState == null) return result;
 
+            LoadTrackerFromDisk();
+            SaveTracker tracker = GetSaveTracker(self.rainWorld.options.saveSlot, saveState.saveStateNumber.value);
 
-            SaveTracker tracker = GetSaveTracker(self.rainWorld.options.saveSlot, saveState.saveStateNumber);
-
-            if (!malnourished) return result;
+            if (malnourished)
+            {
+                Plugin.Logger.LogWarning("Saving Starve Cycle!");
+                tracker.aliveTimeCorrection = saveState.totTime - tracker.startTime;
+            }
             
-
-            Plugin.Logger.LogWarning("Saving time in starve cycle!");
-            tracker.totalTimeCorrection = saveState.totTime - tracker.startTime;
+            SaveTrackerToDisk();
 
             return result;
         }
 
-        private static void ApplyTimeCorrection(SaveTracker tracker, SaveState saveState)
-        {
-            saveState.totTime = saveState.totTime - tracker.totalTimeCorrection;
-        }
 
+        private static string SaveTrackerFilePath => Path.Combine(Custom.LegacyRootFolderDirectory(), Plugin.MOD_ID + "_savetrackers.txt");
 
+        private const char SAVE_SLOT_SEPARATOR = ';';
+        private const char NAME_SEPARATOR = '.';
+        private const char ARG_SEPARATOR = '.';
 
-        private static string SaveTrackerFilePath => Path.Combine(Custom.LegacyRootFolderDirectory(), Plugin.MOD_ID + "_saveTrackers.txt");
+        private const char SAVE_SLOT_EQUALITY = '-';
+        private const char SLUGCAT_EQUALITY = ':';
+        private const char ARG_EQUALITY = '=';
+
 
         private static void SaveTrackerToDisk()
         {
-            string text = "HELLO WORLD";
+            try
+            {
+                string text = "";
 
-            // TODO: Serialize saves tracker
+                foreach (int saveSlot in saveTrackers.Keys)
+                {
+                    text += saveSlot;
+                    text += SAVE_SLOT_EQUALITY;
 
-            File.WriteAllText(SaveTrackerFilePath, text);
+                    foreach (string slugcat in saveTrackers[saveSlot].Keys)
+                    {
+                        text += slugcat;
+                        text += SLUGCAT_EQUALITY;
+
+                        SaveTracker tracker = saveTrackers[saveSlot][slugcat];
+
+
+                        text += nameof(tracker.aliveTimeCorrection) + ARG_EQUALITY + tracker.aliveTimeCorrection;
+                        text += ARG_SEPARATOR;
+
+                        text += nameof(tracker.deathTimeCorrection) + ARG_EQUALITY + tracker.deathTimeCorrection;
+                        text += ARG_SEPARATOR;
+
+                        text += nameof(tracker.aliveTimeMilliseconds) + ARG_EQUALITY + tracker.aliveTimeMilliseconds;
+                        text += ARG_SEPARATOR;
+
+                        text += nameof(tracker.deathTimeMilliseconds) + ARG_EQUALITY + tracker.deathTimeMilliseconds;
+
+
+                        text += NAME_SEPARATOR;
+                    }
+
+                    text += SAVE_SLOT_SEPARATOR;
+                }
+
+                File.WriteAllText(SaveTrackerFilePath, text);
+            }
+            catch (Exception ex)
+            {
+                Plugin.Logger.LogError("Error saving tracker to disk!\n" + ex);
+            }
         }
 
         private static void LoadTrackerFromDisk()
         {
-            string text = File.ReadAllText(SaveTrackerFilePath);
+            try
+            {
+                if (!File.Exists(SaveTrackerFilePath)) return;
 
-            // TODO: Deserialize data into saves tracker
+                string text = File.ReadAllText(SaveTrackerFilePath);
+
+                string[] saveSlots = text.Split(SAVE_SLOT_SEPARATOR);
+            
+                foreach (string saveSlotString in saveSlots)
+                {
+                    string[] saveSlotSlugcatPair = saveSlotString.Split(SAVE_SLOT_EQUALITY);
+                    int.TryParse(saveSlotSlugcatPair[0], out int saveSlot);
+                
+                    string[] slugcats = saveSlotString.Split(NAME_SEPARATOR);
+
+                    foreach (string slugcatString in slugcats)
+                    {
+                        string[] slugcatTrackerPair = slugcatString.Split(SLUGCAT_EQUALITY);
+                        string slugcat = slugcatTrackerPair[0];
+
+                        SaveTracker tracker = GetSaveTracker(saveSlot, slugcat);
+                    
+                    
+                        string[] trackerVariables = slugcatString.Split(ARG_SEPARATOR);
+
+                        foreach (string variable in trackerVariables)
+                        {
+                            string[] keyValue = variable.Split(ARG_EQUALITY);
+
+                            switch (keyValue[0])
+                            {
+                                case nameof(tracker.aliveTimeCorrection):
+                                    tracker.aliveTimeCorrection = int.Parse(keyValue[1]);
+                                    break;
+
+                                case nameof(tracker.deathTimeCorrection):
+                                    tracker.deathTimeCorrection = int.Parse(keyValue[1]);
+                                    break;
+
+                                case nameof(tracker.aliveTimeMilliseconds):
+                                    tracker.aliveTimeMilliseconds = int.Parse(keyValue[1]);
+                                    break;
+
+                                case nameof(tracker.deathTimeMilliseconds):
+                                    tracker.deathTimeMilliseconds = int.Parse(keyValue[1]);
+                                    break;
+                            }
+                        }
+                    }
+
+                }
+            }
+            catch (Exception ex)
+            {
+                Plugin.Logger.LogError("Error loading tracker from disk!\n" + ex);
+            }
         }
 
         private static void ConvertSurvivedTimeToDeathTime()
@@ -202,8 +306,8 @@ namespace SpeedrunTimerFix
             {
                 foreach (SaveTracker tracker in nameTrackerPair.Values)
                 {
-                    tracker.deathTimeMilliseconds = tracker.totalTimeCorrection;
-                    tracker.totalTimeCorrection = 0;
+                    tracker.deathTimeCorrection = tracker.aliveTimeCorrection;
+                    tracker.aliveTimeCorrection = 0;
                 }
             }
 
@@ -231,9 +335,30 @@ namespace SpeedrunTimerFix
         private static void StoryGameSession_AppendTimeOnCycleEnd(On.StoryGameSession.orig_AppendTimeOnCycleEnd orig, StoryGameSession self, bool deathOrGhost)
         {
             orig(self, deathOrGhost);
+            
+            PlayerProgression progression = self.game.rainWorld.progression;
+            
+            SlugcatStats.Name? saveStateNumber = progression.currentSaveState != null ? progression.currentSaveState.saveStateNumber : progression.starvedSaveState?.saveStateNumber;
+            if (saveStateNumber == null) return;
+
+            SaveTracker tracker = GetSaveTracker(progression.rainWorld.options.saveSlot, saveStateNumber.value);
 
 
-            ConvertSurvivedTimeToDeathTime();
+            if (deathOrGhost)
+            {
+                tracker.deathTimeCorrection = tracker.aliveTimeCorrection;
+                tracker.aliveTimeCorrection = 0;
+
+                tracker.deathTimeMilliseconds = tracker.undeterminedMilliseconds;
+            }
+            else
+            {
+                tracker.aliveTimeMilliseconds = tracker.undeterminedMilliseconds;
+            }
+
+            tracker.undeterminedMilliseconds = 0;
+
+             SaveTrackerToDisk();
         }
         
         
@@ -241,14 +366,25 @@ namespace SpeedrunTimerFix
         // Adds extra timing information to the slugcat select menu, helps a lot with debugging
         private static void SlugcatPageContinue_ctor(On.Menu.SlugcatSelectMenu.SlugcatPageContinue.orig_ctor orig, Menu.SlugcatSelectMenu.SlugcatPageContinue self, Menu.Menu menu, Menu.MenuObject owner, int pageIndex, SlugcatStats.Name slugcatNumber)
         {
+            PlayerProgression progression = menu.manager.rainWorld.progression;
+            SaveTracker tracker = GetSaveTracker(progression.rainWorld.options.saveSlot, slugcatNumber.value);
+
+            // Absolute mess...
+            Menu.SlugcatSelectMenu.SaveGameData saveGameData = ((Menu.SlugcatSelectMenu)menu).GetSaveGameData(pageIndex - 1); ;
+            int wasGameTimeAlive = saveGameData.gameTimeAlive;
+            
+            if (Options.includeMilliseconds.Value)
+                saveGameData.gameTimeAlive += (tracker.aliveTimeMilliseconds + tracker.deathTimeMilliseconds) / 1000;
+
+
             orig(self, menu, owner, pageIndex, slugcatNumber);
 
 
-            PlayerProgression progression = self.menu.manager.rainWorld.progression;
-            SaveTracker tracker = GetSaveTracker(progression.rainWorld.options.saveSlot, slugcatNumber);
+            self.saveGameData.gameTimeAlive = wasGameTimeAlive;
+
 
             if (Options.includeMilliseconds.Value)
-                self.regionLabel.text = self.regionLabel.text.Insert(self.regionLabel.text.Length - 1, $":{(tracker.totalTimeMilliseconds + tracker.deathTimeMilliseconds).ToString().PadLeft(3, '0')}ms");
+                self.regionLabel.text = self.regionLabel.text.Insert(self.regionLabel.text.Length - 1, $":{((tracker.aliveTimeMilliseconds + tracker.deathTimeMilliseconds) % 1000).ToString().PadLeft(3, '0')}ms");
 
 
 
@@ -257,12 +393,12 @@ namespace SpeedrunTimerFix
             if (self.saveGameData.shelterName == null || self.saveGameData.shelterName.Length <= 2) return;
 
 
-            string completedCycleTime = Options.formatExtraTimers.Value ? MoreSlugcats.SpeedRunTimer.TimeFormat(TimeSpan.FromSeconds(self.saveGameData.gameTimeAlive + tracker.totalTimeCorrection)) : self.saveGameData.gameTimeAlive + "s";
+            string completedCycleTime = Options.formatExtraTimers.Value ? MoreSlugcats.SpeedRunTimer.TimeFormat(TimeSpan.FromSeconds(self.saveGameData.gameTimeAlive + tracker.aliveTimeCorrection)) : self.saveGameData.gameTimeAlive + "s";
             string lostCycleTime = Options.formatExtraTimers.Value ? MoreSlugcats.SpeedRunTimer.TimeFormat(TimeSpan.FromSeconds(self.saveGameData.gameTimeDead + tracker.deathTimeCorrection)) : self.saveGameData.gameTimeDead + "s";
 
             if (Options.formatExtraTimers.Value && Options.includeMilliseconds.Value)
             {
-                completedCycleTime += $":{tracker.totalTimeMilliseconds.ToString().PadLeft(3, '0')}ms";
+                completedCycleTime += $":{tracker.aliveTimeMilliseconds.ToString().PadLeft(3, '0')}ms";
                 lostCycleTime += $":{tracker.deathTimeMilliseconds.ToString().PadLeft(3, '0')}ms";
             }
 
