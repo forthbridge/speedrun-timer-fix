@@ -1,13 +1,9 @@
-﻿using IL.Menu;
-using Kittehface.Framework20;
-using RWCustom;
+﻿using RWCustom;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Web.Script.Serialization;
-using UnityEngine;
+using Newtonsoft.Json;
+
 
 namespace SpeedrunTimerFix
 {
@@ -86,6 +82,8 @@ namespace SpeedrunTimerFix
 
 
 
+
+
         // Reset tracker timings when the relevant saves are wiped
         private static void PlayerProgression_WipeSaveState(On.PlayerProgression.orig_WipeSaveState orig, PlayerProgression self, SlugcatStats.Name saveStateNumber)
         {
@@ -110,6 +108,9 @@ namespace SpeedrunTimerFix
 
 
 
+
+
+        // Replace in-game display
         private static void SpeedRunTimer_Draw(On.MoreSlugcats.SpeedRunTimer.orig_Draw orig, MoreSlugcats.SpeedRunTimer self, float timeStacker)
         {
             orig(self, timeStacker);
@@ -223,6 +224,63 @@ namespace SpeedrunTimerFix
         }
 
         
+        
+
+
+        // Save & Load
+        private static string SaveTrackerFilePath => Path.Combine(Custom.LegacyRootFolderDirectory(), Plugin.MOD_ID + "_savetimetrackers.json");
+
+        private static void SaveTrackersToDisk()
+        {
+            Dictionary<int, Dictionary<string, Dictionary<string, double>>> toSave = new();
+
+            foreach (var saveSlot in saveTimeTrackers.Keys)
+            {
+                toSave[saveSlot] = new();
+
+                foreach (var slugcat in saveTimeTrackers[saveSlot].Keys)
+                {
+                    toSave[saveSlot][slugcat] = new();
+                    var tracker = GetTracker(saveSlot, slugcat);
+
+
+                    toSave[saveSlot][slugcat][nameof(tracker.completedTime)] = tracker.completedTime;
+                    toSave[saveSlot][slugcat][nameof(tracker.deathTime)] = tracker.deathTime;
+                }
+            }
+
+            File.WriteAllText(SaveTrackerFilePath, JsonConvert.SerializeObject(toSave, Formatting.Indented));
+        }
+
+        private static void LoadTrackersFromDisk()
+        {
+            if (!File.Exists(SaveTrackerFilePath)) return;
+
+            string text = File.ReadAllText(SaveTrackerFilePath);
+
+            try
+            {
+                var toLoad = JsonConvert.DeserializeObject<Dictionary<int, Dictionary<string, Dictionary<string, double>>>>(text);
+                if (toLoad == null) return;
+
+                foreach (var saveSlot in toLoad.Keys)
+                {
+                    foreach (var slugcat in toLoad[saveSlot].Keys)
+                    {
+                        var tracker = GetTracker(saveSlot, slugcat);
+
+                        tracker.completedTime = toLoad[saveSlot][slugcat][nameof(tracker.completedTime)];
+                        tracker.deathTime = toLoad[saveSlot][slugcat][nameof(tracker.deathTime)];
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Plugin.Logger.LogError("Error deserializing and or loading saved time trackers:\n" + ex);
+            }
+        }
+
+
 
 
 
@@ -244,7 +302,6 @@ namespace SpeedrunTimerFix
             return saveState;
         }
 
-        // Track starving saves
         private static bool PlayerProgression_SaveWorldStateAndProgression(On.PlayerProgression.orig_SaveWorldStateAndProgression orig, PlayerProgression self, bool malnourished)
         {
             bool result = orig(self, malnourished);
@@ -270,23 +327,7 @@ namespace SpeedrunTimerFix
 
 
 
-        private static string SaveTrackerFilePath => Path.Combine(Custom.LegacyRootFolderDirectory(), Plugin.MOD_ID + "_savetimetrackers.json");
-
-        private static void SaveTrackersToDisk()
-        {
-            if (!File.Exists(SaveTrackerFilePath)) return;
-        }
-
-        private static void LoadTrackersFromDisk()
-        {
-
-        }
-
-
-
-
-
-        // Starved saves are considered dead at these points, have them be converted
+        // We know for sure if a save is dead or alive at this point, convert the time accordingly
         private static void MainMenu_ExitButtonPressed(On.Menu.MainMenu.orig_ExitButtonPressed orig, Menu.MainMenu self)
         {
             ConvertAllUndeterminedToDeathTime();
@@ -338,7 +379,7 @@ namespace SpeedrunTimerFix
 
 
 
-        // Adds extra timing information to the slugcat select menu, helps a lot with debugging
+        // Replace timers on the slugcat select menu
         private static void SlugcatPageContinue_ctor(On.Menu.SlugcatSelectMenu.SlugcatPageContinue.orig_ctor orig, Menu.SlugcatSelectMenu.SlugcatPageContinue self, Menu.Menu menu, Menu.MenuObject owner, int pageIndex, SlugcatStats.Name slugcatNumber)
         {
             orig(self, menu, owner, pageIndex, slugcatNumber);
@@ -368,6 +409,5 @@ namespace SpeedrunTimerFix
                 self.regionLabel.text += ")";
             }
         }
-
     }
 }
