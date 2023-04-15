@@ -38,6 +38,7 @@ namespace SpeedrunTimerFix
                 On.MoreSlugcats.SpeedRunTimer.Draw += SpeedRunTimer_Draw;
 
                 On.StoryGameSession.TimeTick += StoryGameSession_TimeTick;
+                On.ProcessManager.CreateValidationLabel += ProcessManager_CreateValidationLabel;
 
                 On.PlayerProgression.WipeSaveState += PlayerProgression_WipeSaveState;
                 On.PlayerProgression.WipeAll += PlayerProgression_WipeAll;
@@ -53,6 +54,8 @@ namespace SpeedrunTimerFix
                 orig(self);
             }
         }
+
+
 
 
 
@@ -78,6 +81,24 @@ namespace SpeedrunTimerFix
             }
             else if (!self.game.cameras[0].voidSeaMode)
                 tracker.undeterminedTime += dt * 1000;
+        }
+
+        private static void ProcessManager_CreateValidationLabel(On.ProcessManager.orig_CreateValidationLabel orig, ProcessManager self)
+        {
+            orig(self);
+
+            SlugcatStats.Name slugcat = self.rainWorld.progression.miscProgressionData.currentlySelectedSinglePlayerSlugcat;
+            Menu.SlugcatSelectMenu.SaveGameData saveGameData = Menu.SlugcatSelectMenu.MineForSaveData(self, slugcat);
+            if (saveGameData == null) return;
+
+            TimeSpan timeSpan = TimeSpan.FromSeconds(saveGameData.gameTimeAlive + saveGameData.gameTimeDead);
+            string textToReplace = " (" + MoreSlugcats.SpeedRunTimer.TimeFormat(timeSpan) + ")";
+
+
+            SaveTimeTracker tracker = GetTracker(self.rainWorld.options.saveSlot, slugcat.value);
+            string textToAdd = " (" + tracker.GetFormattedTime(tracker.TotalTimeSpan) + ")";
+
+            self.validationLabel.text = self.validationLabel.text.Replace(textToReplace, textToAdd);
         }
 
 
@@ -295,8 +316,10 @@ namespace SpeedrunTimerFix
             // Transfer existing save info to freshly generated time trackers
             if (tracker.TotalTime == 0.0f)
             {
-                tracker.completedTime = saveState.totTime;
-                tracker.deathTime = saveState.deathPersistentSaveData.deathTime;
+                tracker.completedTime = saveState.totTime * 1000.0f;
+                tracker.deathTime = saveState.deathPersistentSaveData.deathTime * 1000.0f;
+
+                Plugin.Logger.LogWarning(tracker.completedTime);
             }
 
             return saveState;
@@ -389,14 +412,19 @@ namespace SpeedrunTimerFix
             PlayerProgression progression = menu.manager.rainWorld.progression;
             SaveTimeTracker tracker = GetTracker(progression.rainWorld.options.saveSlot, slugcatNumber.value);
 
+            if (tracker.TotalTime == 0.0f)
+            {
+                self.regionLabel.text = self.regionLabel.text.Remove(self.regionLabel.text.Length - 1);
+                self.regionLabel.text += "???)\n(Save must be loaded at least once for custom time tracking)";
+                return;
+            }
 
-
+            
             TimeSpan timeSpan = TimeSpan.FromSeconds(self.saveGameData.gameTimeAlive + self.saveGameData.gameTimeDead);
             string textToReplace = " (" + MoreSlugcats.SpeedRunTimer.TimeFormat(timeSpan) + ")";
 
             string textToAdd = " (" + tracker.GetFormattedTime(tracker.TotalTimeSpan) + ")";
             self.regionLabel.text = self.regionLabel.text.Replace(textToReplace, textToAdd);
-
 
 
             if (Options.extraTimers.Value)

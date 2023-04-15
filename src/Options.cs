@@ -92,8 +92,6 @@ namespace SpeedrunTimerFix
             DrawBox(ref Tabs[tabIndex]);
         }
 
-
-
         #region UI Elements
 
         private void AddTab(ref int tabIndex, string tabName)
