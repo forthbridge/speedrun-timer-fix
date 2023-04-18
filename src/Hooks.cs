@@ -216,7 +216,7 @@ namespace SpeedrunTimerFix
             if (Options.includeMilliseconds.Value || !Options.formatTimers.Value)
             {
                 self.lastPos.x = lastPosX;
-                self.pos.x = (int)(self.hud.rainWorld.options.ScreenSize.x / 2.0f) + 0.2f - (Options.formatTimers.Value ? 100.0f : 35.0f); 
+                self.pos.x = (int)(self.hud.rainWorld.options.ScreenSize.x / 2.0f) + 0.2f - (Options.formatTimers.Value ? 90.0f : 35.0f); 
             }
 
             if (Options.dontFade.Value)
@@ -250,7 +250,7 @@ namespace SpeedrunTimerFix
             public string GetFormattedTime(TimeSpan timeSpan)
             {
                 if (!Options.formatTimers.Value)
-                    return ((Options.fixedUpdateTimer.Value ? (int)(timeSpan.TotalSeconds * FIXED_FRAMERATE) : timeSpan.TotalSeconds * FIXED_FRAMERATE)).ToString().PadLeft(7, '0');
+                    return Options.fixedUpdateTimer.Value ? ((int)timeSpan.TotalSeconds * FIXED_FRAMERATE).ToString("0000000") : (timeSpan.TotalSeconds * FIXED_FRAMERATE).ToString("0000000.00");
 
 
 
@@ -265,7 +265,7 @@ namespace SpeedrunTimerFix
 
                 if (!Options.includeMilliseconds.Value) return formattedTime;
 
-                return formattedTime + $":{timeSpan.Milliseconds.ToString().PadLeft(3, '0')}ms";
+                return formattedTime + $":{timeSpan.Milliseconds:000}ms";
             }
 
             public void WipeTimes()
