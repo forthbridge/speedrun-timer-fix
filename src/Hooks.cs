@@ -250,7 +250,7 @@ namespace SpeedrunTimerFix
             public string GetFormattedTime(TimeSpan timeSpan)
             {
                 if (!Options.formatTimers.Value)
-                    return ((Options.formatTimers.Value ? timeSpan.TotalSeconds : (int)(timeSpan.TotalSeconds) * FIXED_FRAMERATE)).ToString().PadLeft(7, '0');
+                    return ((Options.fixedUpdateTimer.Value ? (int)(timeSpan.TotalSeconds * FIXED_FRAMERATE) : timeSpan.TotalSeconds * FIXED_FRAMERATE)).ToString().PadLeft(7, '0');
 
 
 
