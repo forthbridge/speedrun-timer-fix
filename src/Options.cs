@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using Menu.Remix.MixedUI;
+using Menu.Remix.MixedUI.ValueTypes;
 using UnityEngine;
 
 namespace SpeedrunTimerFix
@@ -14,7 +16,7 @@ namespace SpeedrunTimerFix
         #region Options
 
         public static Configurable<bool> includeMilliseconds = instance.config.Bind("includeMilliseconds", true, new ConfigurableInfo(
-            "When checked, timers will include milliseconds.",
+            "When checked, timers will include milliseconds. Purely visual, time is tracked the same regardless.",
             null, "", "Include Milliseconds?"));
 
         public static Configurable<bool> dontFade = instance.config.Bind("dontFade", false, new ConfigurableInfo(
@@ -23,12 +25,19 @@ namespace SpeedrunTimerFix
 
 
         public static Configurable<bool> extraTimers = instance.config.Bind("extraTimers", true, new ConfigurableInfo(
-            "When checked, adds additional timing info onto the slugcat select menu.",
+            "When checked, adds additional timing info (Completed & Lost) onto the slugcat select menu.",
             null, "", "Extra Timers?"));
 
         public static Configurable<bool> formatTimers = instance.config.Bind("formatTimers", true, new ConfigurableInfo(
-            "When checked, timers will be formatted in Hours:Minutes:Seconds:Milliseconds. When unchecked, they will only show milliseconds.",
+            "When checked, timers will be formatted in Hours:Minutes:Seconds:Milliseconds. When unchecked, they will instead show frames.",
             null, "", "Format Timers?"));
+
+
+
+        public static Configurable<bool> fixedUpdateTimer = instance.config.Bind("fixedUpdateTimer", true, new ConfigurableInfo(
+            "When checked, the timer will update within the fixed timestep (40hz Physics Update). When unchecked, will update every frame (RawUpdate).",
+            null, "", "Fixed Update Timer?"));
+
 
 
         public static readonly Configurable<Color> timerColor = instance.config.Bind("timerColor", Color.white, new ConfigurableInfo(
@@ -81,8 +90,10 @@ namespace SpeedrunTimerFix
             AddCheckBox(formatTimers, (string)formatTimers.info.Tags[0]);
             DrawCheckBoxes(ref Tabs[tabIndex]);
             
-            AddNewLine(6);
+            AddNewLine(3);
 
+            AddCheckBox(fixedUpdateTimer, (string)fixedUpdateTimer.info.Tags[0]);
+            DrawCheckBoxes(ref Tabs[tabIndex]);
 
             Vector2 offset = new(0.0f, -150.0f);
 
@@ -91,6 +102,29 @@ namespace SpeedrunTimerFix
 
             DrawBox(ref Tabs[tabIndex]);
         }
+
+        public override string ValidationString() => base.ValidationString() + (fixedUpdateTimer.Value ? " FIXED" : " FREE");
+
+        public override void Update()
+        {
+            base.Update();
+
+            OpCheckBox checkBox = (OpCheckBox)Tabs[0].items.Where(item => item is OpCheckBox checkBox && checkBox.cfgEntry == fixedUpdateTimer).FirstOrDefault();
+            OpLabel label = (OpLabel)Tabs[0].items.Where(item => item is OpLabel label && label.text == fixedUpdateTimer.info.Tags[0].ToString()).FirstOrDefault();
+
+            if (checkBox.GetValueBool())
+            {
+                checkBox.colorEdge = Color.green;
+                label.color = Color.green;
+            }
+            else
+            {
+                checkBox.colorEdge = Color.red;
+                label.color = Color.red;
+            }
+        }
+
+
 
         #region UI Elements
 

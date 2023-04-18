@@ -3,13 +3,42 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
-
+using MonoMod.Cil;
+using System.Runtime.CompilerServices;
 
 namespace SpeedrunTimerFix
 {
     internal static partial class Hooks
     {
-        public static void ApplyHooks() => On.RainWorld.OnModsInit += RainWorld_OnModsInit;
+        public static void ApplyHooks()
+        {
+            On.RainWorld.OnModsInit += RainWorld_OnModsInit;
+
+            On.Menu.SlugcatSelectMenu.SlugcatPageContinue.ctor += SlugcatPageContinue_ctor;
+            On.StoryGameSession.AppendTimeOnCycleEnd += StoryGameSession_AppendTimeOnCycleEnd;
+
+
+            On.PlayerProgression.GetOrInitiateSaveState += PlayerProgression_GetOrInitiateSaveState;
+            On.PlayerProgression.SaveWorldStateAndProgression += PlayerProgression_SaveWorldStateAndProgression;
+
+            On.Menu.MainMenu.ExitButtonPressed += MainMenu_ExitButtonPressed;
+            On.Menu.ModdingMenu.Singal += ModdingMenu_Singal;
+
+            On.MoreSlugcats.SpeedRunTimer.Update += SpeedRunTimer_Update;
+            On.MoreSlugcats.SpeedRunTimer.Draw += SpeedRunTimer_Draw;
+
+            On.ProcessManager.CreateValidationLabel += ProcessManager_CreateValidationLabel;
+
+            On.PlayerProgression.WipeSaveState += PlayerProgression_WipeSaveState;
+            On.PlayerProgression.WipeAll += PlayerProgression_WipeAll;
+
+
+
+            On.StoryGameSession.TimeTick += StoryGameSession_TimeTick;
+            On.RainWorldGame.Update += RainWorldGame_Update;
+        }
+
+
 
         private static bool isInit = false;
 
@@ -22,26 +51,6 @@ namespace SpeedrunTimerFix
 
 
                 MachineConnector.SetRegisteredOI(Plugin.MOD_ID, Options.instance);
-
-
-                On.Menu.SlugcatSelectMenu.SlugcatPageContinue.ctor += SlugcatPageContinue_ctor;
-                On.StoryGameSession.AppendTimeOnCycleEnd += StoryGameSession_AppendTimeOnCycleEnd;
-
-
-                On.PlayerProgression.GetOrInitiateSaveState += PlayerProgression_GetOrInitiateSaveState;
-                On.PlayerProgression.SaveWorldStateAndProgression += PlayerProgression_SaveWorldStateAndProgression;
-
-                On.Menu.MainMenu.ExitButtonPressed += MainMenu_ExitButtonPressed;
-                On.Menu.ModdingMenu.Singal += ModdingMenu_Singal;
-
-                On.MoreSlugcats.SpeedRunTimer.Update += SpeedRunTimer_Update;
-                On.MoreSlugcats.SpeedRunTimer.Draw += SpeedRunTimer_Draw;
-
-                On.StoryGameSession.TimeTick += StoryGameSession_TimeTick;
-                On.ProcessManager.CreateValidationLabel += ProcessManager_CreateValidationLabel;
-
-                On.PlayerProgression.WipeSaveState += PlayerProgression_WipeSaveState;
-                On.PlayerProgression.WipeAll += PlayerProgression_WipeAll;
 
                 LoadTrackersFromDisk();
             }
@@ -58,11 +67,16 @@ namespace SpeedrunTimerFix
 
 
 
-
-        // Timer logic
+        private const int FIXED_FRAMERATE = 40;
+        
+        // Time Tick is the traditional way of handling incrementing the timer, the built-in timer uses this
         private static void StoryGameSession_TimeTick(On.StoryGameSession.orig_TimeTick orig, StoryGameSession self, float dt)
         {
             orig(self, dt);
+
+            if (Options.fixedUpdateTimer.Value) return;
+
+
 
             if (RainWorld.lockGameTimer) return;
 
@@ -82,6 +96,44 @@ namespace SpeedrunTimerFix
             else if (!self.game.cameras[0].voidSeaMode)
                 tracker.undeterminedTime += dt * 1000;
         }
+
+        // RainWorldGame.Update handles the time in a fixed physics step. This reduces the precision, but will account for lag, so is preferred
+        private static void RainWorldGame_Update(On.RainWorldGame.orig_Update orig, RainWorldGame self)
+        {
+            orig(self);
+
+            if (!Options.fixedUpdateTimer.Value) return;
+
+
+
+            if (self.GamePaused || !self.IsStorySession) return;
+            
+            if (ModManager.MSC && (self.rainWorld.safariMode || self.manager.artificerDreamNumber != -1)) return;
+
+            if (RainWorld.lockGameTimer) return;
+
+
+
+            SaveTimeTracker? tracker = GetTrackerFromProgression(self.rainWorld.progression);
+            if (tracker == null) return;
+
+            if (self.cameras[0].hud == null) return;
+
+
+
+            const float dt = 1.0f / FIXED_FRAMERATE;
+
+            if (self.cameras[0].hud.textPrompt.gameOverMode)
+            {
+                if (!self.Players[0].state.dead || (ModManager.CoopAvailable && self.AlivePlayers.Count > 0))
+                    tracker.undeterminedTime += dt * 1000;
+
+            }
+            else if (!self.cameras[0].voidSeaMode)
+                tracker.undeterminedTime += dt * 1000;
+        }
+
+
 
         private static void ProcessManager_CreateValidationLabel(On.ProcessManager.orig_CreateValidationLabel orig, ProcessManager self)
         {
@@ -164,7 +216,7 @@ namespace SpeedrunTimerFix
             if (Options.includeMilliseconds.Value || !Options.formatTimers.Value)
             {
                 self.lastPos.x = lastPosX;
-                self.pos.x = (int)(self.hud.rainWorld.options.ScreenSize.x / 2.0f) + 0.2f - (!Options.formatTimers.Value ? 50.0f : 100.0f); 
+                self.pos.x = (int)(self.hud.rainWorld.options.ScreenSize.x / 2.0f) + 0.2f - (Options.formatTimers.Value ? 100.0f : 35.0f); 
             }
 
             if (Options.dontFade.Value)
@@ -198,7 +250,9 @@ namespace SpeedrunTimerFix
             public string GetFormattedTime(TimeSpan timeSpan)
             {
                 if (!Options.formatTimers.Value)
-                    return timeSpan.TotalMilliseconds.ToString().PadLeft(8, '0') + "ms";
+                    return ((int)(timeSpan.TotalSeconds * FIXED_FRAMERATE)).ToString().PadLeft(7, '0');
+
+
 
                 string formattedTime = string.Format("{0:D3}h:{1:D2}m:{2:D2}s", new object[3]
                 {
@@ -206,6 +260,8 @@ namespace SpeedrunTimerFix
                     timeSpan.Minutes,
                     timeSpan.Seconds
                 });
+
+
 
                 if (!Options.includeMilliseconds.Value) return formattedTime;
 
@@ -318,8 +374,6 @@ namespace SpeedrunTimerFix
             {
                 tracker.completedTime = saveState.totTime * 1000.0f;
                 tracker.deathTime = saveState.deathPersistentSaveData.deathTime * 1000.0f;
-
-                Plugin.Logger.LogWarning(tracker.completedTime);
             }
 
             return saveState;
