@@ -3,16 +3,19 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
-using MonoMod.Cil;
-using System.Runtime.CompilerServices;
+
 
 namespace SpeedrunTimerFix
 {
-    internal static partial class Hooks
+    public static partial class Hooks
     {
-        public static void ApplyHooks()
+        internal static void ApplyHooks()
         {
             On.RainWorld.OnModsInit += RainWorld_OnModsInit;
+            On.RainWorld.Update += RainWorld_Update;
+
+            On.RainWorldGame.ctor += RainWorldGame_ctor;
+            On.RainWorldGame.ExitGame += RainWorldGame_ExitGame;
 
             On.Menu.SlugcatSelectMenu.SlugcatPageContinue.ctor += SlugcatPageContinue_ctor;
             On.StoryGameSession.AppendTimeOnCycleEnd += StoryGameSession_AppendTimeOnCycleEnd;
@@ -63,6 +66,67 @@ namespace SpeedrunTimerFix
                 orig(self);
             }
         }
+
+
+
+
+
+        // Public API
+        public static TimeSpan SpeedrunTimerFix_CurrentSaveTimeSpan = TimeSpan.Zero; // Easy to read for the autosplitter!
+
+        public static SaveTimeTracker? GetSaveTimeTracker(int? saveSlot=null, SlugcatStats.Name? slugcat=null)
+        {
+            if (saveSlot == null)
+            {
+                if (currentSaveSlot == null) return null;
+
+                saveSlot = currentSaveSlot;
+            }
+
+            if (slugcat == null)
+            {
+                if (currentSlugcat == null) return null;
+
+                slugcat = currentSlugcat;
+            }
+
+            return saveTimeTrackers[(int)saveSlot][slugcat.value];
+        }
+
+
+
+        private static int? currentSaveSlot = null;
+        private static SlugcatStats.Name? currentSlugcat = null;
+
+        private static void RainWorld_Update(On.RainWorld.orig_Update orig, RainWorld self)
+        {
+            orig(self);
+
+            if (currentSaveSlot != null && currentSlugcat != null)
+                SpeedrunTimerFix_CurrentSaveTimeSpan = saveTimeTrackers[(int)currentSaveSlot][currentSlugcat.value].TotalTimeSpan;
+
+            else
+                SpeedrunTimerFix_CurrentSaveTimeSpan = TimeSpan.Zero;
+        }
+
+        private static void RainWorldGame_ExitGame(On.RainWorldGame.orig_ExitGame orig, RainWorldGame self, bool asDeath, bool asQuit)
+        {
+            orig(self, asDeath, asQuit);
+
+            currentSaveSlot = null;
+            currentSlugcat = null;
+        }
+
+        private static void RainWorldGame_ctor(On.RainWorldGame.orig_ctor orig, RainWorldGame self, ProcessManager manager)
+        {
+            orig(self, manager);
+
+            if (!self.IsStorySession) return;
+
+            currentSaveSlot = self.rainWorld.options.saveSlot;
+            currentSlugcat = self.StoryCharacter;
+        }
+
 
 
 
@@ -120,8 +184,7 @@ namespace SpeedrunTimerFix
             if (self.cameras[0].hud == null) return;
 
 
-
-            const float dt = 1.0f / FIXED_FRAMERATE;
+            float dt = 1.0f / (Options.compensateFixedFramerate.Value ? self.framesPerSecond : FIXED_FRAMERATE);
 
             if (self.cameras[0].hud.textPrompt.gameOverMode)
             {
@@ -235,7 +298,7 @@ namespace SpeedrunTimerFix
         // Save Tracker
         private static Dictionary<int, Dictionary<string, SaveTimeTracker>> saveTimeTrackers = new();
         
-        private class SaveTimeTracker
+        public class SaveTimeTracker
         {
             public TimeSpan TotalTimeSpan => TimeSpan.FromMilliseconds(TotalTime);
             public double TotalTime => completedTime + deathTime + undeterminedTime;

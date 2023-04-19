@@ -38,6 +38,10 @@ namespace SpeedrunTimerFix
             "When checked, the timer will update within the fixed timestep (40hz Physics Update). When unchecked, will update every frame (RawUpdate).",
             null, "", "Fixed Update Timer?"));
 
+        public static Configurable<bool> compensateFixedFramerate = instance.config.Bind("compensateFixedFramerate", true, new ConfigurableInfo(
+            "When checked, considers the current fixed framerate when calculating delta time. Only affects the fixed update timer.",
+            null, "", "Compensate Fixed Framerate?"));
+
 
 
         public static readonly Configurable<Color> timerColor = instance.config.Bind("timerColor", Color.white, new ConfigurableInfo(
@@ -93,6 +97,7 @@ namespace SpeedrunTimerFix
             AddNewLine(3);
 
             AddCheckBox(fixedUpdateTimer, (string)fixedUpdateTimer.info.Tags[0]);
+            AddCheckBox(compensateFixedFramerate, (string)compensateFixedFramerate.info.Tags[0]);
             DrawCheckBoxes(ref Tabs[tabIndex]);
 
             Vector2 offset = new(0.0f, -150.0f);
@@ -103,25 +108,24 @@ namespace SpeedrunTimerFix
             DrawBox(ref Tabs[tabIndex]);
         }
 
-        public override string ValidationString() => base.ValidationString() + (fixedUpdateTimer.Value ? " FIXED" : " FREE");
+        public override string ValidationString() => base.ValidationString() + (fixedUpdateTimer.Value ? " FIXED" : " FREE") + (fixedUpdateTimer.Value ? (compensateFixedFramerate.Value ? " COMPENSATED" : " UNCOMPENSATED") : "");
 
         public override void Update()
         {
             base.Update();
 
-            OpCheckBox checkBox = (OpCheckBox)Tabs[0].items.Where(item => item is OpCheckBox checkBox && checkBox.cfgEntry == fixedUpdateTimer).FirstOrDefault();
-            OpLabel label = (OpLabel)Tabs[0].items.Where(item => item is OpLabel label && label.text == fixedUpdateTimer.info.Tags[0].ToString()).FirstOrDefault();
+            OpCheckBox fixedUpdateTimerCheckBox = (OpCheckBox)Tabs[0].items.Where(item => item is OpCheckBox checkBox && checkBox.cfgEntry == fixedUpdateTimer).FirstOrDefault();
+            OpLabel fixedUpdateTimerLabel = (OpLabel)Tabs[0].items.Where(item => item is OpLabel label && label.text == fixedUpdateTimer.info.Tags[0].ToString()).FirstOrDefault();
 
-            if (checkBox.GetValueBool())
-            {
-                checkBox.colorEdge = Color.green;
-                label.color = Color.green;
-            }
-            else
-            {
-                checkBox.colorEdge = Color.red;
-                label.color = Color.red;
-            }
+            fixedUpdateTimerCheckBox.colorEdge = fixedUpdateTimerCheckBox.GetValueBool() ? Color.green : Color.red;
+            fixedUpdateTimerLabel.color = fixedUpdateTimerCheckBox.GetValueBool() ? Color.green : Color.red;
+      
+
+            OpCheckBox compensateFixedFramerateCheckBox = (OpCheckBox)Tabs[0].items.Where(item => item is OpCheckBox checkBox && checkBox.cfgEntry == compensateFixedFramerate).FirstOrDefault();
+            OpLabel compensateFixedFramerateLabel = (OpLabel)Tabs[0].items.Where(item => item is OpLabel label && label.text == compensateFixedFramerate.info.Tags[0].ToString()).FirstOrDefault();
+
+            compensateFixedFramerateCheckBox.colorEdge = compensateFixedFramerateCheckBox.GetValueBool() ? Color.green : Color.red;
+            compensateFixedFramerateLabel.color = compensateFixedFramerateCheckBox.GetValueBool() ? Color.green : Color.red;
         }
 
 
