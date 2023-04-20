@@ -16,7 +16,7 @@ namespace SpeedrunTimerFix
     {
         public static new ManualLogSource Logger { get; private set; } = null!;
 
-        public const string VERSION = "1.0.2";  
+        public const string VERSION = "1.0.3";  
         public const string MOD_NAME = "Speedrun Timer Fix";
         public const string MOD_ID = "speedruntimerfix";
         public const string AUTHOR = "forthbridge";

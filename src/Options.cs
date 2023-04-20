@@ -33,6 +33,11 @@ namespace SpeedrunTimerFix
             null, "", "Format Timers?"));
 
 
+        public static Configurable<bool> showOriginalTimer = instance.config.Bind("showOriginalTimer", false, new ConfigurableInfo(
+            "When checked, displays the original built-in timer below the new one in game and beside on the select screen.",
+            null, "", "Show Original Timer?"));
+
+
 
         public static Configurable<bool> fixedUpdateTimer = instance.config.Bind("fixedUpdateTimer", true, new ConfigurableInfo(
             "When checked, the timer will update within the fixed timestep (40hz Physics Update). When unchecked, will update every frame (RawUpdate).",
@@ -86,15 +91,18 @@ namespace SpeedrunTimerFix
             AddTab(ref tabIndex, "General");
 
             AddCheckBox(includeMilliseconds, (string)includeMilliseconds.info.Tags[0]);
-            AddCheckBox(dontFade, (string)dontFade.info.Tags[0]);
+            AddCheckBox(formatTimers, (string)formatTimers.info.Tags[0]);
             DrawCheckBoxes(ref Tabs[tabIndex]);
 
 
             AddCheckBox(extraTimers, (string)extraTimers.info.Tags[0]);
-            AddCheckBox(formatTimers, (string)formatTimers.info.Tags[0]);
+            AddCheckBox(dontFade, (string)dontFade.info.Tags[0]);
             DrawCheckBoxes(ref Tabs[tabIndex]);
-            
-            AddNewLine(3);
+
+            AddCheckBox(showOriginalTimer, (string)showOriginalTimer.info.Tags[0]);
+            DrawCheckBoxes(ref Tabs[tabIndex]);
+
+
 
             AddCheckBox(fixedUpdateTimer, (string)fixedUpdateTimer.info.Tags[0]);
             AddCheckBox(compensateFixedFramerate, (string)compensateFixedFramerate.info.Tags[0]);

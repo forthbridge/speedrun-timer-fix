@@ -207,13 +207,13 @@ namespace SpeedrunTimerFix
             if (saveGameData == null) return;
 
             TimeSpan timeSpan = TimeSpan.FromSeconds(saveGameData.gameTimeAlive + saveGameData.gameTimeDead);
-            string textToReplace = " (" + MoreSlugcats.SpeedRunTimer.TimeFormat(timeSpan) + ")";
+            string oldTimerText = " (" + MoreSlugcats.SpeedRunTimer.TimeFormat(timeSpan) + ")";
 
 
             SaveTimeTracker tracker = GetTracker(self.rainWorld.options.saveSlot, slugcat.value);
-            string textToAdd = " (" + tracker.GetFormattedTime(tracker.TotalTimeSpan) + ")";
+            string newTimerText = " (" + tracker.GetFormattedTime(tracker.TotalTimeSpan) + ")";
 
-            self.validationLabel.text = self.validationLabel.text.Replace(textToReplace, textToAdd);
+            self.validationLabel.text = self.validationLabel.text.Replace(oldTimerText, newTimerText + (Options.showOriginalTimer.Value ? " - OLD" + oldTimerText : ""));
         }
 
 
@@ -273,13 +273,13 @@ namespace SpeedrunTimerFix
             if (tracker == null) return;
 
 
-            self.timeLabel.text = tracker.GetFormattedTime(tracker.TotalTimeSpan);
+            self.timeLabel.text = tracker.GetFormattedTime(tracker.TotalTimeSpan) + (Options.showOriginalTimer.Value ? "\nOLD (" + MoreSlugcats.SpeedRunTimer.TimeFormat(self.timing) + ")" : "");
 
 
             if (Options.includeMilliseconds.Value || !Options.formatTimers.Value)
             {
                 self.lastPos.x = lastPosX;
-                self.pos.x = (int)(self.hud.rainWorld.options.ScreenSize.x / 2.0f) + 0.2f - (Options.formatTimers.Value ? 90.0f : 35.0f); 
+                self.pos.x = (int)(self.hud.rainWorld.options.ScreenSize.x / 2.0f) + 0.2f - (Options.formatTimers.Value ? 95.0f : 35.0f); 
             }
 
             if (Options.dontFade.Value)
@@ -296,7 +296,7 @@ namespace SpeedrunTimerFix
 
 
         // Save Tracker
-        private static Dictionary<int, Dictionary<string, SaveTimeTracker>> saveTimeTrackers = new();
+        private static readonly Dictionary<int, Dictionary<string, SaveTimeTracker>> saveTimeTrackers = new();
         
         public class SaveTimeTracker
         {
@@ -313,7 +313,7 @@ namespace SpeedrunTimerFix
             public string GetFormattedTime(TimeSpan timeSpan)
             {
                 if (!Options.formatTimers.Value)
-                    return Options.fixedUpdateTimer.Value ? ((int)timeSpan.TotalSeconds * FIXED_FRAMERATE).ToString("0000000") : (timeSpan.TotalSeconds * FIXED_FRAMERATE).ToString("0000000.00");
+                    return Options.fixedUpdateTimer.Value ? ((int)(timeSpan.TotalSeconds * FIXED_FRAMERATE)).ToString("0000000") : (timeSpan.TotalSeconds * FIXED_FRAMERATE).ToString("0000000.00");
 
 
 
@@ -538,10 +538,10 @@ namespace SpeedrunTimerFix
 
             
             TimeSpan timeSpan = TimeSpan.FromSeconds(self.saveGameData.gameTimeAlive + self.saveGameData.gameTimeDead);
-            string textToReplace = " (" + MoreSlugcats.SpeedRunTimer.TimeFormat(timeSpan) + ")";
+            string oldTimerText = " (" + MoreSlugcats.SpeedRunTimer.TimeFormat(timeSpan) + ")";
 
-            string textToAdd = " (" + tracker.GetFormattedTime(tracker.TotalTimeSpan) + ")";
-            self.regionLabel.text = self.regionLabel.text.Replace(textToReplace, textToAdd);
+            string newTimerText = " (" + tracker.GetFormattedTime(tracker.TotalTimeSpan) + ")";
+            self.regionLabel.text = self.regionLabel.text.Replace(oldTimerText, newTimerText) + (Options.showOriginalTimer.Value ? " - OLD" + oldTimerText : "");
 
 
             if (Options.extraTimers.Value)
