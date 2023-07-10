@@ -85,10 +85,6 @@ public static partial class Hooks
     {
         orig(self);
 
-        if (!IsFirstLoadFinished) return;
-
-        SpeedrunTimerFix_CurrentSaveTimeSpan = self.GetSaveTimeTracker().TotalTimeSpan;
-
         if (ModOptions.LagSimulation.Value)
         {
             // Simulate Lag
@@ -130,6 +126,9 @@ public static partial class Hooks
     {
         orig(self);
 
+        var tracker = self.GetSaveTimeTracker();
+        SpeedrunTimerFix_CurrentSaveTimeSpan = tracker.TotalTimeSpan;
+
         if (!ModOptions.FixedUpdateTimer.Value) return;
 
         if (self.GamePaused || !self.IsStorySession) return;
@@ -137,9 +136,6 @@ public static partial class Hooks
         if (ModManager.MSC && (self.rainWorld.safariMode || self.manager.artificerDreamNumber != -1)) return;
 
         if (RainWorld.lockGameTimer) return;
-
-        var tracker = self.GetSaveTimeTracker();
-
 
         if (self.cameras[0].hud == null) return;
 
