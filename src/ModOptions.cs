@@ -11,7 +11,7 @@ public sealed class ModOptions : OptionsTemplate
     public static readonly Color WarnRed = new(0.85f, 0.35f, 0.4f);
     public static readonly Color ValidGreen = new(159 / 255.0f, 1.0f, 150 / 255.0f);
 
-    public override string ValidationString() => base.ValidationString() + (FixedUpdateTimer.Value ? " FIXED" : " FREE") + (FixedUpdateTimer.Value ? (CompensateFixedFramerate.Value ? " COMPENSATED" : " UNCOMPENSATED") : "");
+    public override string ValidationString() => base.ValidationString() + (CompensateFixedFramerate.Value ? " COMPENSATED" : " UNCOMPENSATED") + (LagSimulation.Value ? " LAGSIM" : "");
 
     #region Options
 
@@ -28,23 +28,23 @@ public sealed class ModOptions : OptionsTemplate
         "When checked, adds additional timing info (Completed & Lost) onto the slugcat select menu.",
         null, "", "Extra Timers?"));
 
-    public static Configurable<bool> FormatTimers = Instance.config.Bind(nameof(FormatTimers), true, new ConfigurableInfo(
-        "When checked, timers will be formatted in Hours:Minutes:Seconds:Milliseconds. When unchecked, they will instead show frames.",
-        null, "", "Format Timers?"));
-
- 
     public static Configurable<bool> ShowOriginalTimer = Instance.config.Bind(nameof(ShowOriginalTimer), false, new ConfigurableInfo(
         "When checked, displays the original built-in timer below the new one in game and beside on the select screen.",
         null, "", "Show Original Timer?"));
 
+ 
+    public static Configurable<bool> ShowFreeUpdateTimer = Instance.config.Bind(nameof(ShowFreeUpdateTimer), false, new ConfigurableInfo(
+        "When checked, shows a timer that updates on TimeTick, same as the built-in one. It is not recommended to use this as it doesn't account for lag.",
+        null, "", "Show Free Update Timer?"));
+
+    public static Configurable<bool> FormatTimers = Instance.config.Bind(nameof(FormatTimers), true, new ConfigurableInfo(
+        "When checked, timers will be formatted in Hours:Minutes:Seconds:Milliseconds. When unchecked, they will instead show frames.",
+        null, "", "Format Timers?"));
+
+
     public static Configurable<bool> LagSimulation = Instance.config.Bind(nameof(LagSimulation), false, new ConfigurableInfo(
         "When checked, pressing L will simulate a lag spike.",
         null, "", "Lag Simulation?"));
-
-
-    public static Configurable<bool> FixedUpdateTimer = Instance.config.Bind(nameof(FixedUpdateTimer), true, new ConfigurableInfo(
-        "When checked, the timer will update within the fixed timestep (40hz Physics Update). When unchecked, will update every frame (RawUpdate).",
-        null, "", "Fixed Update Timer?"));
 
     public static Configurable<bool> CompensateFixedFramerate = Instance.config.Bind(nameof(CompensateFixedFramerate), true, new ConfigurableInfo(
         "When checked, considers the current fixed framerate when calculating delta time. Only affects the fixed update timer.",
@@ -70,18 +70,18 @@ public sealed class ModOptions : OptionsTemplate
         AddNewLine(-1);
 
         AddCheckBox(IncludeMilliseconds);
-        AddCheckBox(FormatTimers);
-        DrawCheckBoxes(ref Tabs[tabIndex]);
-
-        AddCheckBox(ExtraTimers);
         AddCheckBox(DontFade);
         DrawCheckBoxes(ref Tabs[tabIndex]);
 
+        AddCheckBox(ExtraTimers);
         AddCheckBox(ShowOriginalTimer);
-        AddCheckBox(LagSimulation);
         DrawCheckBoxes(ref Tabs[tabIndex]);
 
-        AddCheckBox(FixedUpdateTimer);
+        AddCheckBox(LagSimulation);
+        AddCheckBox(ShowFreeUpdateTimer);
+        DrawCheckBoxes(ref Tabs[tabIndex]);
+
+        AddCheckBox(FormatTimers);
         AddCheckBox(CompensateFixedFramerate);
         DrawCheckBoxes(ref Tabs[tabIndex]);
 
@@ -99,10 +99,11 @@ public sealed class ModOptions : OptionsTemplate
     {
         base.Update();
 
-        if (GetConfigurable(FixedUpdateTimer, out OpCheckBox checkBox))
+
+        if (GetConfigurable(FormatTimers, out OpCheckBox checkBox))
             checkBox.colorEdge = checkBox.GetValueBool() ? ValidGreen : WarnRed;
 
-        if (GetLabel(FixedUpdateTimer, out OpLabel label))
+        if (GetLabel(FormatTimers, out OpLabel label))
             label.color = checkBox.GetValueBool() ? ValidGreen : WarnRed;
 
 

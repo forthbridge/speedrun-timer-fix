@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MoreSlugcats;
+using System;
 using System.Linq;
 using UnityEngine;
 
@@ -99,25 +100,22 @@ public static partial class Hooks
     {
         orig(self, dt);
 
-        if (ModOptions.FixedUpdateTimer.Value) return;
-
         if (RainWorld.lockGameTimer) return;
 
         var tracker = self.game.GetSaveTimeTracker();
         
-
         if (self.game.cameras[0].hud == null) return;
 
         if (self.game.cameras[0].hud.textPrompt.gameOverMode)
         {
             if (!self.Players[0].state.dead || (ModManager.CoopAvailable && self.game.AlivePlayers.Count > 0))
             {
-                tracker.UndeterminedTime += dt * 1000;
+                tracker.TotalFreeTime += dt * 1000;
             }
         }
         else if (!self.game.cameras[0].voidSeaMode)
         {
-            tracker.UndeterminedTime += dt * 1000;
+            tracker.TotalFreeTime += dt * 1000;
         }
     }
 
@@ -127,15 +125,15 @@ public static partial class Hooks
         orig(self);
 
         var tracker = self.GetSaveTimeTracker();
-        SpeedrunTimerFix_CurrentSaveTimeSpan = tracker.TotalTimeSpan;
 
-        if (!ModOptions.FixedUpdateTimer.Value) return;
+        SpeedrunTimerFix_CurrentSaveTimeSpan = tracker.TotalTimeSpan;
 
         if (self.GamePaused || !self.IsStorySession) return;
         
         if (ModManager.MSC && (self.rainWorld.safariMode || self.manager.artificerDreamNumber != -1)) return;
 
         if (RainWorld.lockGameTimer) return;
+
 
         if (self.cameras[0].hud == null) return;
 
@@ -144,16 +142,19 @@ public static partial class Hooks
         if (self.cameras[0].hud.textPrompt.gameOverMode)
         {
             if (!self.Players[0].state.dead || (ModManager.CoopAvailable && self.AlivePlayers.Count > 0))
+            {
                 tracker.UndeterminedTime += dt * 1000;
-
+            }
         }
         else if (!self.cameras[0].voidSeaMode)
+        {
             tracker.UndeterminedTime += dt * 1000;
+        }
     }
 
 
     // Replace in-game display
-    private static void SpeedRunTimer_Draw(On.MoreSlugcats.SpeedRunTimer.orig_Draw orig, MoreSlugcats.SpeedRunTimer self, float timeStacker)
+    private static void SpeedRunTimer_Draw(On.MoreSlugcats.SpeedRunTimer.orig_Draw orig, SpeedRunTimer self, float timeStacker)
     {
         orig(self, timeStacker);
 
@@ -162,7 +163,7 @@ public static partial class Hooks
             self.timeLabel.alignment = FLabelAlignment.Left;
     }
 
-    private static void SpeedRunTimer_Update(On.MoreSlugcats.SpeedRunTimer.orig_Update orig, MoreSlugcats.SpeedRunTimer self)
+    private static void SpeedRunTimer_Update(On.MoreSlugcats.SpeedRunTimer.orig_Update orig, SpeedRunTimer self)
     {
         // Last fade is a hack to get the timer to display in the fully faded position whilst being fully visible
         float lastPosX = self.pos.x;
@@ -175,13 +176,21 @@ public static partial class Hooks
 
         var tracker = self.hud.rainWorld.GetSaveTimeTracker();
 
-        self.timeLabel.text = tracker.GetFormattedTime(tracker.TotalTimeSpan) + (ModOptions.ShowOriginalTimer.Value ? "\nOLD (" + MoreSlugcats.SpeedRunTimer.TimeFormat(self.timing) + ")" : "");
+        self.timeLabel.text = tracker.GetFormattedTime(tracker.TotalTimeSpan)
+            + (ModOptions.ShowOriginalTimer.Value ? "\nOLD (" + SpeedRunTimer.TimeFormat(self.timing) + ")" : "")
+            + (ModOptions.ShowFreeUpdateTimer.Value ? "\nFREE (" + tracker.GetFormattedTime(tracker.TotalFreeTimespan) + ")" : "");
 
         if (ModOptions.IncludeMilliseconds.Value || !ModOptions.FormatTimers.Value)
         {
             self.lastPos.x = lastPosX;
-            self.pos.x = (int)(self.hud.rainWorld.options.ScreenSize.x / 2.0f) + 0.2f - (ModOptions.FormatTimers.Value ? 95.0f : 35.0f); 
+            self.pos.x -= (ModOptions.FormatTimers.Value ? 95.0f : 35.0f); 
         }
+
+        if (ModOptions.ShowOriginalTimer.Value && ModOptions.ShowFreeUpdateTimer.Value)
+            self.pos.y -= 15.0f;
+
+        if ((ModOptions.ShowOriginalTimer.Value || ModOptions.ShowFreeUpdateTimer.Value) && self.ThePlayer().abstractCreature.world.game.devToolsActive)
+            self.pos.y -= 15.0f;
 
         if (ModOptions.DontFade.Value)
         {
@@ -228,21 +237,25 @@ public static partial class Hooks
 
         if (self.saveGameData.shelterName == null || self.saveGameData.shelterName.Length <= 2) return;
 
-        var timeSpan = TimeSpan.FromSeconds(self.saveGameData.gameTimeAlive + self.saveGameData.gameTimeDead);
-        var oldTimerText = " (" + MoreSlugcats.SpeedRunTimer.TimeFormat(timeSpan) + ")";
-
-        var tracker = menu.manager.rainWorld.GetSaveTimeTracker();
+        var tracker = menu.manager.rainWorld.GetSaveTimeTracker(slugcatNumber);
 
         // transfer existing time over
         if (tracker.TotalTime == 0.0f)
         {
             tracker.CompletedTime = self.saveGameData.gameTimeAlive * 1000.0f;
             tracker.DeathTime = self.saveGameData.gameTimeDead * 1000.0f;
+
+            tracker.TotalFreeTime = tracker.TotalTime;
         }
 
         var newTimerText = " (" + tracker.GetFormattedTime(tracker.TotalTimeSpan) + ")";
 
-        self.regionLabel.text = self.regionLabel.text.Replace(oldTimerText, newTimerText) + (ModOptions.ShowOriginalTimer.Value ? " - OLD" + oldTimerText : "");
+        var timeSpan = TimeSpan.FromSeconds(self.saveGameData.gameTimeAlive + self.saveGameData.gameTimeDead);
+        var oldTimerText = " (" + SpeedRunTimer.TimeFormat(timeSpan) + ")";
+
+        self.regionLabel.text = self.regionLabel.text.Replace(oldTimerText, newTimerText)
+            + (ModOptions.ShowOriginalTimer.Value ? " - OLD" + oldTimerText : "")
+            + (ModOptions.ShowFreeUpdateTimer.Value ? " - FREE (" + tracker.GetFormattedTime(tracker.TotalFreeTimespan) + ")" : "");
 
 
         if (ModOptions.ExtraTimers.Value)
@@ -292,11 +305,13 @@ public static partial class Hooks
         if (saveGameData == null) return;
 
         var timeSpan = TimeSpan.FromSeconds(saveGameData.gameTimeAlive + saveGameData.gameTimeDead);
-        var oldTimerText = " (" + MoreSlugcats.SpeedRunTimer.TimeFormat(timeSpan) + ")";
+        var oldTimerText = " (" + SpeedRunTimer.TimeFormat(timeSpan) + ")";
 
         var tracker = self.rainWorld.GetSaveTimeTracker();
         var newTimerText = " (" + tracker.GetFormattedTime(tracker.TotalTimeSpan) + ")";
 
-        self.validationLabel.text = self.validationLabel.text.Replace(oldTimerText, newTimerText + (ModOptions.ShowOriginalTimer.Value ? " - OLD" + oldTimerText : ""));
+        self.validationLabel.text = self.validationLabel.text.Replace(oldTimerText, newTimerText
+            + (ModOptions.ShowOriginalTimer.Value ? " - OLD" + oldTimerText : "")
+            + (ModOptions.ShowFreeUpdateTimer.Value ? " - FREE (" + tracker.GetFormattedTime(tracker.TotalFreeTimespan) + ")" : ""));
     }
 }

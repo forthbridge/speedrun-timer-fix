@@ -1,0 +1,17 @@
+{
+  "Title": "Speedrun Timer Fix",
+  "Description": "Fixes the built-in speedrun timer, which does not count time properly in some scenarios.\u003CLINE\u003E\u003CLINE\u003E\u003CLINE\u003E\u003CLINE\u003E\u003CLINE\u003ESource: https://github.com/forthbridge/speedrun-timer-fix",
+  "ID": "speedruntimerfix",
+  "Version": "1.1.0",
+  "TargetGameVersion": "v1.9.07",
+  "Requirements": "rwremix",
+  "RequirementNames": "Rain World Remix",
+  "Authors": "forthbridge",
+  "Visibility": "Unlisted",
+  "Tags": [
+    "Accessibility",
+    "Tools"
+  ],
+  "WorkshopID": 2960580529,
+  "UploadFilesOnly": false
+}

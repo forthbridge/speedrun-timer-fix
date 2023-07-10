@@ -33,10 +33,13 @@ public static partial class Hooks
         public TimeSpan TotalTimeSpan => TimeSpan.FromMilliseconds(TotalTime);
         public double TotalTime => CompletedTime + DeathTime + UndeterminedTime;
 
+        public double TotalFreeTime { get; set; }
+        public TimeSpan TotalFreeTimespan => TimeSpan.FromMilliseconds(TotalFreeTime);
+
         public string GetFormattedTime(TimeSpan timeSpan)
         {
             if (!ModOptions.FormatTimers.Value)
-                return ModOptions.FixedUpdateTimer.Value ? ((int)(timeSpan.TotalSeconds * FIXED_FRAMERATE)).ToString("0000000") : (timeSpan.TotalSeconds * FIXED_FRAMERATE).ToString("0000000.00");
+                return (timeSpan.TotalSeconds * FIXED_FRAMERATE).ToString("0000000.00");
 
             string formattedTime = string.Format("{0:D3}h:{1:D2}m:{2:D2}s", new object[3]
             {
@@ -56,6 +59,8 @@ public static partial class Hooks
             CompletedTime = 0.0f;
             DeathTime = 0.0f;
             UndeterminedTime = 0.0f;
+
+            TotalFreeTime = 0.0f;
         }
     }
 
