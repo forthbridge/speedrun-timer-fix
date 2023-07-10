@@ -1,5 +1,4 @@
-﻿
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -11,7 +10,7 @@ public static partial class Hooks
 {
     public class SaveMiscProgression
     {
-        public Dictionary<SlugcatStats.Name, SaveTimeTracker> CampaignSaveTimeTrackers { get; } = new();
+        public Dictionary<string, SaveTimeTracker> CampaignSaveTimeTrackers { get; set; } = new();
 
         public void ConvertUndeterminedToDeathTime()
         {
@@ -36,8 +35,8 @@ public static partial class Hooks
 
         public string GetFormattedTime(TimeSpan timeSpan)
         {
-            if (!ModOptions.formatTimers.Value)
-                return ModOptions.fixedUpdateTimer.Value ? ((int)(timeSpan.TotalSeconds * FIXED_FRAMERATE)).ToString("0000000") : (timeSpan.TotalSeconds * FIXED_FRAMERATE).ToString("0000000.00");
+            if (!ModOptions.FormatTimers.Value)
+                return ModOptions.FixedUpdateTimer.Value ? ((int)(timeSpan.TotalSeconds * FIXED_FRAMERATE)).ToString("0000000") : (timeSpan.TotalSeconds * FIXED_FRAMERATE).ToString("0000000.00");
 
             string formattedTime = string.Format("{0:D3}h:{1:D2}m:{2:D2}s", new object[3]
             {
@@ -46,7 +45,7 @@ public static partial class Hooks
                 timeSpan.Seconds
             });
 
-            if (!ModOptions.includeMilliseconds.Value)
+            if (!ModOptions.IncludeMilliseconds.Value)
                 return formattedTime;
 
             return formattedTime + $":{timeSpan.Milliseconds:000}ms";
@@ -67,8 +66,8 @@ public static partial class Hooks
     {
         var save = rainWorld.GetMiscProgression();
 
-        if (!save.CampaignSaveTimeTrackers.TryGetValue(slugcat, out var tracker))
-            save.CampaignSaveTimeTrackers.Add(slugcat, tracker = new());
+        if (!save.CampaignSaveTimeTrackers.TryGetValue(slugcat.value, out var tracker))
+            save.CampaignSaveTimeTrackers.Add(slugcat.value, tracker = new());
 
         return tracker;
     }
@@ -83,15 +82,13 @@ public static partial class Hooks
         return save;
     }
 
-    private static void SaveCustomData(this PlayerProgression.MiscProgressionData self) => self.GetSaveData().SaveToStrings(self.unrecognizedSaveStrings);
-
 
     // Following is adapted from SlugBase, code by Vigaro
-    private static void ApplySaveDataHooks() => On.PlayerProgression.MiscProgressionData.ToString += MiscProgressionData_ToString;
+    private static void ApplySaveDataHooks() => On.PlayerProgression.MiscProgressionData.ToString += MiscProgressionData_ToString; 
 
     private static string MiscProgressionData_ToString(On.PlayerProgression.MiscProgressionData.orig_ToString orig, PlayerProgression.MiscProgressionData self)
     {
-        self.SaveCustomData();
+        self.GetSaveData().SaveToStrings(self.unrecognizedSaveStrings);
         return orig(self);
     }
 
@@ -102,19 +99,19 @@ public static partial class Hooks
         internal const string SAVE_DATA_PREFIX = "_SpeedrunTimerFixSaveData_";
 
         internal static readonly ConditionalWeakTable<PlayerProgression.MiscProgressionData, SaveData> ProgressionData = new();
-        
-        private readonly Dictionary<string, object> data;
+
+        private readonly Dictionary<string, object> _data;
         private readonly List<string> _unrecognizedSaveStrings;
 
         internal SaveData(List<string> unrecognizedSaveStrings)
         {
-            data = new Dictionary<string, object>();
+            _data = new Dictionary<string, object>();
             _unrecognizedSaveStrings = unrecognizedSaveStrings;
         }
 
         public bool TryGet<T>(string key, out T value)
         {
-            if (data.TryGetValue(key, out var obj) && obj is T castObj)
+            if (_data.TryGetValue(key, out var obj) && obj is T castObj)
             {
                 value = castObj;
                 return true;
@@ -123,7 +120,7 @@ public static partial class Hooks
             if (LoadStringFromUnrecognizedStrings(key, out var stringValue))
             {
                 value = JsonConvert.DeserializeObject<T>(stringValue)!;
-                data[key] = value!;
+                _data[key] = value;
                 return true;
             }
 
@@ -131,12 +128,17 @@ public static partial class Hooks
             return false;
         }
 
-        public void Set<T>(string key, T value) => data[key] = value!;
+        public void Set<T>(string key, T value)
+        {
+            _data[key] = value!;
+        }
 
         internal void SaveToStrings(List<string> strings)
         {
-            foreach (var pair in data)
+            foreach (var pair in _data)
+            {
                 SavePairToStrings(strings, pair.Key, JsonConvert.SerializeObject(pair.Value));
+            }
         }
 
         private static void SavePairToStrings(List<string> strings, string key, string value)
@@ -199,3 +201,30 @@ public static partial class Hooks
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
 */
+
+// cursed
+
+//public class ExtEnumConverter : JsonConverter
+//{
+//    public override bool CanConvert(Type objectType) => objectType.IsSubclassOf(typeof(ExtEnumBase)) || objectType == typeof(ExtEnumBase);
+
+//    public override object? ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
+//    {
+//        if (existingValue is not string value)
+//            return null;
+
+//        Plugin.Logger.LogWarning(value);
+
+//        if (ExtEnumBase.TryParse(objectType, value, false, out var extEnum))
+//            return Convert.ChangeType(extEnum, objectType);
+
+//        return null;
+//    }
+ 
+//    public override bool CanWrite => false;
+
+//    public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
+//    {
+//        throw new NotImplementedException("Unnecessary because CanWrite is false. The type will skip the converter.");
+//    }
+//}
