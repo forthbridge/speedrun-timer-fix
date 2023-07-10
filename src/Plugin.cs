@@ -8,23 +8,22 @@ using System.Security;
 [module: UnverifiableCode]
 #pragma warning restore CS0618 // Type or member is obsolete
 
+namespace SpeedrunTimerFix;
 
-namespace SpeedrunTimerFix
+[BepInPlugin(MOD_ID, MOD_ID, "1.0.0")]
+public class Plugin : BaseUnityPlugin
 {
-    [BepInPlugin(AUTHOR + "." + MOD_ID, MOD_NAME, VERSION)]
-    internal class Plugin : BaseUnityPlugin
+    public const string MOD_ID = "speedruntimerfix";
+    
+    public static string MOD_NAME = "";
+    public static string VERSION = "";
+    public static string AUTHORS = "";
+
+    public static new ManualLogSource Logger { get; private set; } = null!;
+
+    public void OnEnable()
     {
-        public static new ManualLogSource Logger { get; private set; } = null!;
-
-        public const string VERSION = "1.0.3";  
-        public const string MOD_NAME = "Speedrun Timer Fix";
-        public const string MOD_ID = "speedruntimerfix";
-        public const string AUTHOR = "forthbridge";
-
-        public void OnEnable()
-        {
-            Logger = base.Logger;
-            Hooks.ApplyHooks();
-        }
+        Logger = base.Logger;
+        Hooks.ApplyInit();
     }
 }

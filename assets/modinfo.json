@@ -1,7 +1,7 @@
 {
 	"id": "speedruntimerfix",
 	"name": "Speedrun Timer Fix",
-	"version": "1.0.3",
+	"version": "1.1.0",
 	"authors": "forthbridge",
 	"description": "Fixes the built-in speedrun timer, which does not count time properly in some scenarios.<LINE><LINE><LINE><LINE><LINE>Source: https://github.com/forthbridge/speedrun-timer-fix",
 	"requirements": ["rwremix"],
