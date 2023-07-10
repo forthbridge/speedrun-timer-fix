@@ -1,8 +1,8 @@
 {
   "Title": "Speedrun Timer Fix",
-  "Description": "Fixes the built-in speedrun timer, which does not count time properly in some scenarios.\u003CLINE\u003E\u003CLINE\u003E\u003CLINE\u003E\u003CLINE\u003E\u003CLINE\u003ESource: https://github.com/forthbridge/speedrun-timer-fix",
+  "Description": "[h1]Fixes the built-in speedrun timer, which does not count time properly in some scenarios.[/h1]\r\n\r\n[h1]Features:[/h1]\r\n[b][list]\r\n    [*]Millisecond display option\r\n    [*]Frame timer option\r\n    [*]Starve cycle time is counted properly\r\n\r\n    [*]Option to display survived (completed) and death (lost) time separately on the select menu\r\n    [*]Option to change the in-game timer\u0027s colour\r\n    [*]Option to prevent the in-game timer from fading\r\n\r\n    [*]Option between incrementing the timer in Fixed or Free Update\r\n[list]\r\n    [*]Fixed Update runs at 40hz, precision only up to 25ms, but compensates for lag\r\n    [*]Free Update runs at your game\u0027s FPS value, can track time much more precisely, but does not account for lag\r\n[/list]\r\n[/list][/b]\r\n\r\n[b](thumbnail by my sister)[/b]\r\n[u][b]Source: https://github.com/forthbridge/speedrun-timer-fix[/b][/u]",
   "ID": "speedruntimerfix",
-  "Version": "1.1.0",
+  "Version": "1.1.1",
   "TargetGameVersion": "v1.9.07",
   "Requirements": "rwremix",
   "RequirementNames": "Rain World Remix",
