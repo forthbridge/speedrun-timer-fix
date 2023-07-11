@@ -1,21 +1,15 @@
-[h1]Fixes the built-in speedrun timer, which does not count time properly in some scenarios.[/h1]
+[h1]Fixes the built-in speedrun timer, which does not count time properly in some scenarios![/h1]
 
 [h1]Features:[/h1]
 [b][list]
     [*]Millisecond display option
-    [*]Frame timer option
     [*]Starve cycle time is counted properly
 
     [*]Option to display survived (completed) and death (lost) time separately on the select menu
     [*]Option to change the in-game timer's colour
     [*]Option to prevent the in-game timer from fading
 
-    [*]Option between incrementing the timer in Fixed or Free Update
-[list]
-    [*]Fixed Update runs at 40hz, precision only up to 25ms, but compensates for lag
-    [*]Free Update runs at your game's FPS value, can track time much more precisely, but does not account for lag
-[/list]
+    [*]New timer based on physics updates, should compensate for lag so timing is consistent between hardware
 [/list][/b]
-
 [b](thumbnail by my sister)[/b]
 [u][b]Source: https://github.com/forthbridge/speedrun-timer-fix[/b][/u]

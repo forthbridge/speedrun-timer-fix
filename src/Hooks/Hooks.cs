@@ -9,7 +9,7 @@ public static partial class Hooks
 {
     public static void ApplyInit() => On.RainWorld.OnModsInit += RainWorld_OnModsInit;
 
-    public static bool IsInit { get; set; } = false;
+    public static bool IsInit { get; private set; } = false;
     private static void RainWorld_OnModsInit(On.RainWorld.orig_OnModsInit orig, RainWorld self)
     {
         try
@@ -18,7 +18,6 @@ public static partial class Hooks
             IsInit = true;
 
             ApplyHooks();
-
 
             var mod = ModManager.ActiveMods.FirstOrDefault(mod => mod.id == Plugin.MOD_ID);
 
@@ -65,12 +64,13 @@ public static partial class Hooks
     }
 
 
-    // Public API, easy to read for the autosplitter
-    public static TimeSpan SpeedrunTimerFix_CurrentSaveTimeSpan { get; set; } = TimeSpan.Zero;
+    // Easy to read for the autosplitter if support is ever needed
+    public static TimeSpan SpeedrunTimerFix_CurrentSaveTimeSpan = TimeSpan.Zero;
 
     public const int FIXED_FRAMERATE = 40;
     public const int LAG_INTENSITY = 10000000;
 
+    // Convert undetermined time to death time on first init, do this on the main menu so it's not too early
     public static bool IsFirstLoadFinished { get; set; } = false;
     private static void MainMenu_Update(On.Menu.MainMenu.orig_Update orig, Menu.MainMenu self)
     {
@@ -89,11 +89,12 @@ public static partial class Hooks
         if (ModOptions.LagSimulation.Value)
         {
             // Simulate Lag
-            if (Input.GetKeyDown(KeyCode.L))
+            if (Input.GetKeyDown(KeyCode.Equals))
                 for (int i = 0; i < LAG_INTENSITY; i++)
                     _ = new Vector3(Mathf.Sin(i), Mathf.Cos(i), Mathf.Tan(i));
         }
     }
+
 
     // Time Tick is the traditional way of handling incrementing the timer, the built-in timer uses this
     private static void StoryGameSession_TimeTick(On.StoryGameSession.orig_TimeTick orig, StoryGameSession self, float dt)
