@@ -4,6 +4,6 @@
 	"version": "1.1.4",
 	"authors": "forthbridge",
 	"description": "Improves the built-in speedrun timer, which does not count time properly in some scenarios.<LINE><LINE>Source: https://github.com/forthbridge/speedrun-timer-fix",
-	"tags": ["Accessibility", "Tools", "Translations"],
+	"tags": ["Accessibility", "Tools"],
 	"checksum_override_version": false
 }
