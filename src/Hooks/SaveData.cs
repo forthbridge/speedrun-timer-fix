@@ -65,7 +65,7 @@ public static partial class Hooks
     }
 
 
-    public static SaveTimeTracker GetSaveTimeTracker(this RainWorldGame game) => game.rainWorld.GetSaveTimeTracker(game.GetStorySession.saveStateNumber);
+    public static SaveTimeTracker? GetSaveTimeTracker(this RainWorldGame game) => game.IsStorySession ? game.rainWorld.GetSaveTimeTracker(game.GetStorySession.saveStateNumber) : null;
     public static SaveTimeTracker GetSaveTimeTracker(this RainWorld rainWorld) => rainWorld.GetSaveTimeTracker(rainWorld.progression.miscProgressionData.currentlySelectedSinglePlayerSlugcat);
     public static SaveTimeTracker GetSaveTimeTracker(this RainWorld rainWorld, SlugcatStats.Name slugcat)
     {
@@ -78,7 +78,7 @@ public static partial class Hooks
     }
 
     public static SaveMiscProgression GetMiscProgression(this RainWorld rainWorld) => GetMiscProgression(rainWorld.progression.miscProgressionData);
-    public static SaveMiscProgression GetMiscProgression(this RainWorldGame game) => GetMiscProgression(game.GetStorySession.saveState.progression.miscProgressionData);
+    public static SaveMiscProgression GetMiscProgression(this RainWorldGame game) => GetMiscProgression(game.rainWorld.progression.miscProgressionData);
     public static SaveMiscProgression GetMiscProgression(this PlayerProgression.MiscProgressionData data)
     {
         if (!data.GetSaveData().TryGet(Plugin.MOD_ID, out SaveMiscProgression save))

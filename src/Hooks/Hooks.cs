@@ -14,6 +14,8 @@ public static partial class Hooks
     {
         try
         {
+            ModOptions.RegisterOI();
+
             if (IsInit) return;
             IsInit = true;
 
@@ -24,8 +26,6 @@ public static partial class Hooks
             Plugin.MOD_NAME = mod.name;
             Plugin.VERSION = mod.version;
             Plugin.AUTHORS = mod.authors;
-
-            MachineConnector.SetRegisteredOI(Plugin.MOD_ID, ModOptions.Instance);
         }
         catch (Exception e)
         {
@@ -104,7 +104,9 @@ public static partial class Hooks
         if (RainWorld.lockGameTimer) return;
 
         var tracker = self.game.GetSaveTimeTracker();
-        
+
+        if (tracker == null) return;
+
         if (self.game.cameras[0].hud == null) return;
 
         if (self.game.cameras[0].hud.textPrompt.gameOverMode)
@@ -127,7 +129,10 @@ public static partial class Hooks
 
         var tracker = self.GetSaveTimeTracker();
 
+        if (tracker == null) return;
+
         SpeedrunTimerFix_CurrentSaveTimeSpan = tracker.TotalTimeSpan;
+
 
         if (self.GamePaused || !self.IsStorySession) return;
         
@@ -220,6 +225,8 @@ public static partial class Hooks
     private static void StoryGameSession_AppendTimeOnCycleEnd(On.StoryGameSession.orig_AppendTimeOnCycleEnd orig, StoryGameSession self, bool deathOrGhost)
     {
         var tracker = self.game.GetSaveTimeTracker();
+
+        if (tracker == null) return;
 
         if (deathOrGhost)
         {

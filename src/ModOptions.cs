@@ -6,7 +6,14 @@ namespace SpeedrunTimerFix;
 
 public sealed class ModOptions : OptionsTemplate
 {
-    public static readonly ModOptions Instance = new();
+    public static ModOptions Instance { get; } = new();
+    public static void RegisterOI()
+    {
+        if (MachineConnector.GetRegisteredOI(Plugin.MOD_ID) != Instance)
+        {
+            MachineConnector.SetRegisteredOI(Plugin.MOD_ID, Instance);
+        }
+    }
 
     public static readonly Color WarnRed = new(0.85f, 0.35f, 0.4f);
     public static readonly Color ValidGreen = new(159 / 255.0f, 1.0f, 150 / 255.0f);
