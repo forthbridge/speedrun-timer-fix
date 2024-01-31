@@ -11,10 +11,11 @@ using System.Security;
 namespace SpeedrunTimerFix;
 
 [BepInPlugin(MOD_ID, MOD_ID, "1.0.0")]
-public class Plugin : BaseUnityPlugin
+public sealed class Plugin : BaseUnityPlugin
 {
     public const string MOD_ID = "speedruntimerfix";
     
+    // These are assigned in OnModsInit from modinfo.json, so info doesn't need to be updated in multiple places
     public static string MOD_NAME = "";
     public static string VERSION = "";
     public static string AUTHORS = "";
