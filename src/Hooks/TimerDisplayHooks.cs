@@ -134,7 +134,7 @@ public static partial class Hooks
         
             if (tracker.UndeterminedFreeTime != 0.0f)
             {
-                newTimerText += $" - Undetermined: {Utils.GetIGTFormattedTime(TimeSpan.FromMilliseconds(tracker.UndeterminedFreeTime))})";
+                newTimerText += $" - Undetermined: {Utils.GetIGTFormattedTime(TimeSpan.FromMilliseconds(tracker.UndeterminedFreeTime))}";
             }
 
             newTimerText += ")";

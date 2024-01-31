@@ -7,7 +7,7 @@ public static partial class Hooks
 {
     public static void ApplyTimerFunctionHooks()
     {
-        On.Menu.MainMenu.Update += MainMenu_Update;
+        On.PlayerProgression.LoadProgression += PlayerProgression_LoadProgression;
 
         On.StoryGameSession.TimeTick += StoryGameSession_TimeTick;
         On.RainWorldGame.Update += RainWorldGame_Update;
@@ -23,17 +23,13 @@ public static partial class Hooks
     }
 
 
-    // Convert undetermined time to death time on first init, do this on the main menu so it's not too early
-    public static bool IsFirstLoadFinished { get; set; } = false;
-    
-    private static void MainMenu_Update(On.Menu.MainMenu.orig_Update orig, Menu.MainMenu self)
+    // Convert undetermined time to death time whenever progression is loaded, the only time this should occur is when the game is started after the player quit while starving
+    // Disadvantage: this will be called anytime progression is reloaded, such as when the slot is changed - there may be a better way to go about this
+    private static void PlayerProgression_LoadProgression(On.PlayerProgression.orig_LoadProgression orig, PlayerProgression self)
     {
         orig(self);
 
-        if (IsFirstLoadFinished) return;
-        
-        IsFirstLoadFinished = true;
-
+        if (self.loadInProgress) return;
 
         var miscProg = Utils.GetMiscProgression();
 
@@ -41,7 +37,6 @@ public static partial class Hooks
 
         miscProg.ConvertUndeterminedToDeathTime();
     }
-
 
 
     // TimeTick is used by the old timer, however the old timer only counts secondns
