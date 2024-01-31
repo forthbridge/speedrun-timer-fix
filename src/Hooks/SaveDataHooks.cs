@@ -18,7 +18,14 @@ public static partial class Hooks
 
     private static string MiscProgressionData_ToString(On.PlayerProgression.MiscProgressionData.orig_ToString orig, PlayerProgression.MiscProgressionData self)
     {
-        self.GetSaveDataHandler().SaveToStrings(self.unrecognizedSaveStrings);
+        try
+        {
+            self.GetSaveDataHandler().SaveToStrings(self.unrecognizedSaveStrings);
+        }
+        catch (Exception e)
+        {
+            Plugin.Logger.LogError("SpeedrunTimerFix Save Error:\n" + e);
+        }
 
         return orig(self);
     }

@@ -1,5 +1,7 @@
-﻿using MoreSlugcats;
+﻿using Menu;
+using MoreSlugcats;
 using System;
+using UnityEngine;
 
 namespace SpeedrunTimerFix;
 
@@ -13,6 +15,8 @@ public static partial class Hooks
         On.Menu.SlugcatSelectMenu.SlugcatPageContinue.ctor += SlugcatPageContinue_ctor;
 
         On.ProcessManager.CreateValidationLabel += ProcessManager_CreateValidationLabel;
+
+        On.Menu.SleepAndDeathScreen.GetDataFromGame += SleepAndDeathScreen_GetDataFromGame;
     }
 
 
@@ -31,8 +35,8 @@ public static partial class Hooks
     private static void SpeedRunTimer_Update(On.MoreSlugcats.SpeedRunTimer.orig_Update orig, SpeedRunTimer self)
     {
         // Last fade is a hack to get the timer to display in the fully faded position whilst being fully visible
-        float lastPosX = self.pos.x;
-        float lastFade = self.fade;
+        var lastPosX = self.pos.x;
+        var lastFade = self.fade;
 
         if (ModOptions.PreventTimerFading.Value)
         {
@@ -42,7 +46,7 @@ public static partial class Hooks
         orig(self);
 
 
-        var tracker = self.ThePlayer().abstractCreature.world.game.GetCampaignTimeTracker();
+        var tracker = self.ThePlayer()?.abstractCreature?.world?.game?.GetCampaignTimeTracker();
 
         if (tracker == null) return;
 
@@ -90,7 +94,7 @@ public static partial class Hooks
 
 
     // Replace timers on the slugcat select menu
-    private static void SlugcatPageContinue_ctor(On.Menu.SlugcatSelectMenu.SlugcatPageContinue.orig_ctor orig, Menu.SlugcatSelectMenu.SlugcatPageContinue self, Menu.Menu menu, Menu.MenuObject owner, int pageIndex, SlugcatStats.Name slugcatNumber)
+    private static void SlugcatPageContinue_ctor(On.Menu.SlugcatSelectMenu.SlugcatPageContinue.orig_ctor orig, SlugcatSelectMenu.SlugcatPageContinue self, Menu.Menu menu, MenuObject owner, int pageIndex, SlugcatStats.Name slugcatNumber)
     {
         orig(self, menu, owner, pageIndex, slugcatNumber);
 
@@ -146,7 +150,7 @@ public static partial class Hooks
         orig(self);
 
         var slugcat = self.rainWorld.progression.miscProgressionData.currentlySelectedSinglePlayerSlugcat;
-        var saveGameData = Menu.SlugcatSelectMenu.MineForSaveData(self, slugcat);
+        var saveGameData = SlugcatSelectMenu.MineForSaveData(self, slugcat);
 
         if (saveGameData == null) return;
 
@@ -172,5 +176,59 @@ public static partial class Hooks
         }
 
         self.validationLabel.text = self.validationLabel.text.Replace(oldTimerText, newTimerText);
+    }
+
+
+    // Optionally add the timer to the sleep & death screen 
+    private static void SleepAndDeathScreen_GetDataFromGame(On.Menu.SleepAndDeathScreen.orig_GetDataFromGame orig, SleepAndDeathScreen self, KarmaLadderScreen.SleepDeathScreenDataPackage package)
+    {
+        orig(self, package);
+
+        if (!ModManager.MMF || !MMF.cfgSpeedrunTimer.Value) return;
+
+        if (!ModOptions.ShowTimerInSleepScreen.Value) return;
+
+
+        var tracker = package?.characterStats?.name?.GetCampaignTimeTracker();
+
+        if (tracker == null) return;
+
+
+        var speedrunTimerText = Utils.GetIGTFormattedTime(tracker.TotalFreeTimeSpan);
+
+        if (ModOptions.ShowOldTimer.Value)
+        {
+            if (package?.saveState != null)
+            {
+                var oldTimeAlive = package.saveState.totTime;
+                var oldTimeLost = package.saveState.deathPersistentSaveData.deathTime;
+
+                var oldTimerTimeSpan = TimeSpan.FromSeconds(oldTimeAlive + oldTimeLost);
+
+                speedrunTimerText += $"\nOLD ({SpeedRunTimer.TimeFormat(oldTimerTimeSpan)})";
+            }
+        }
+
+        if (ModOptions.ShowFixedUpdateTimer.Value)
+        {
+            speedrunTimerText += $"\nFIXED ({Utils.GetIGTFormattedTime(tracker.TotalFixedTimeSpan)})";
+        }
+
+        var timerPos = new Vector2(0.0f, 700.0f);
+        var timerSize = new Vector2(1366.0f, 20.0f);
+
+        var speedrunTimer = new MenuLabel(self, self.pages[0], speedrunTimerText, timerPos, timerSize, true, null);
+
+        self.pages[0].subObjects.Add(speedrunTimer);
+
+        if (ModOptions.ShowOldTimer.Value || ModOptions.ShowFixedUpdateTimer.Value)
+        {
+            speedrunTimer.pos.y -= 15.0f;
+        }
+
+        if (ModOptions.ShowOldTimer.Value && ModOptions.ShowFixedUpdateTimer.Value)
+        {
+            speedrunTimer.pos.y -= 15.0f;
+        }
     }
 }

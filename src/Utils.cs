@@ -5,9 +5,6 @@ namespace SpeedrunTimerFix;
 
 public static class Utils
 {
-    public const int FIXED_FRAMERATE = 40;
-
-
     // Takes in TimeSpan and returns a string formatted to display as the IGT
     public static string GetIGTFormattedTime(this TimeSpan timeSpan)
     {
@@ -57,6 +54,6 @@ public static class Utils
     }
 
 
-    // A static variable constantly updated to the current timer, which is easy to read should external programs need to read the IGT
+    // A globally accessible static variable constantly updated to the current timer, which is easy to read should external programs need to read the IGT
     public static TimeSpan SpeedrunTimerFix_CurrentFreeTimeSpan = TimeSpan.Zero;
 }

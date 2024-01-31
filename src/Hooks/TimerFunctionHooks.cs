@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace SpeedrunTimerFix;
 
@@ -17,6 +18,8 @@ public static partial class Hooks
         On.PlayerProgression.WipeSaveState += PlayerProgression_WipeSaveState;
 
         On.Menu.SlugcatSelectMenu.Update += SlugcatSelectMenu_Update;
+
+        On.RainWorld.Update += RainWorld_Update;
     }
 
 
@@ -142,6 +145,7 @@ public static partial class Hooks
         orig(self, deathOrGhost);
     }
 
+
     // Wipe the tracker when its campaign is wiped
     private static void PlayerProgression_WipeSaveState(On.PlayerProgression.orig_WipeSaveState orig, PlayerProgression self, SlugcatStats.Name saveStateNumber)
     {
@@ -173,6 +177,27 @@ public static partial class Hooks
             tracker.WipeTimes();
 
             self.manager.RequestMainProcessSwitch(ProcessManager.ProcessID.SlugcatSelect);
+        }
+    }
+
+
+    // Update the global timespan
+    private static void RainWorld_Update(On.RainWorld.orig_Update orig, RainWorld self)
+    {
+        orig(self);
+
+        if (self.processManager?.currentMainLoop is RainWorldGame game)
+        {
+            var tracker = game.StoryCharacter?.GetCampaignTimeTracker();
+
+            if (tracker != null)
+            {
+                Utils.SpeedrunTimerFix_CurrentFreeTimeSpan = tracker.TotalFreeTimeSpan;
+            }
+        }
+        else
+        {
+            Utils.SpeedrunTimerFix_CurrentFreeTimeSpan = TimeSpan.Zero;
         }
     }
 }

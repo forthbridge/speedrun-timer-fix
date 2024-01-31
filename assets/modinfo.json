@@ -5,5 +5,6 @@
 	"authors": "forthbridge",
 	"description": "Improves the built-in speedrun timer, which does not count time properly in some scenarios.",
 	"tags": ["Accessibility", "Tools"],
-	"checksum_override_version": false
+	"checksum_override_version": false,
+	"target_game_version": "v1.9.07b"
 }

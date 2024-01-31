@@ -6,6 +6,7 @@ using UnityEngine;
 namespace SpeedrunTimerFix;
 
 // Based on the options script from SBCameraScroll by SchuhBaum: https://github.com/SchuhBaum/SBCameraScroll/blob/Rain-World-v1.9/SourceCode/MainModOptions.cs
+// This is just a template class, the options for this mod use this as a base and are implemented in ModOptions.cs
 public abstract class OptionsTemplate : OptionInterface
 {
     private const float SPACING = 20.0f;
