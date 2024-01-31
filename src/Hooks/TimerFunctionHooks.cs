@@ -156,6 +156,7 @@ public static partial class Hooks
 
 
 
+    // Allow a manual trigger of the new tracker to fallback to the old timer from the slugcat select menu, if SHIFT + R is pressed while the restart checkbox is checked
     private static void SlugcatSelectMenu_Update(On.Menu.SlugcatSelectMenu.orig_Update orig, Menu.SlugcatSelectMenu self)
     {
         orig(self);
@@ -170,9 +171,7 @@ public static partial class Hooks
             if (tracker == null) return;
 
             tracker.WipeTimes();
-         
-            Plugin.Logger.LogWarning("WIPED TIME FOR SAVE FILE: " + self.manager.rainWorld.progression.miscProgressionData.currentlySelectedSinglePlayerSlugcat);
-        
+
             self.manager.RequestMainProcessSwitch(ProcessManager.ProcessID.SlugcatSelect);
         }
     }

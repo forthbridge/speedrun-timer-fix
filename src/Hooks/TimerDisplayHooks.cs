@@ -108,36 +108,35 @@ public static partial class Hooks
             tracker.LoadOldTimings(self.saveGameData.gameTimeAlive, self.saveGameData.gameTimeDead);
         }
 
-        var newTimerText = $" ({Utils.GetIGTFormattedTime(tracker.TotalFreeTimeSpan)})";
 
         var oldTimerTimeSpan = TimeSpan.FromSeconds(self.saveGameData.gameTimeAlive + self.saveGameData.gameTimeDead);
         var oldTimerText = $" ({SpeedRunTimer.TimeFormat(oldTimerTimeSpan)})";
 
-
-        self.regionLabel.text = self.regionLabel.text.Replace(oldTimerText, newTimerText);
+        var newTimerText = $" ({Utils.GetIGTFormattedTime(tracker.TotalFreeTimeSpan)})";
 
         if (ModOptions.ShowOldTimer.Value)
         {
-            self.regionLabel.text += $" - OLD{oldTimerText}";
+            newTimerText += $" - OLD{oldTimerText}";
         }
 
         if (ModOptions.ShowFixedUpdateTimer.Value)
         {
-            self.regionLabel.text += $" - FIXED ({Utils.GetIGTFormattedTime(tracker.TotalFixedTimeSpan)})";
+            newTimerText += $" - FIXED ({Utils.GetIGTFormattedTime(tracker.TotalFixedTimeSpan)})";
         }
-
 
         if (ModOptions.ShowCompletedAndLost.Value)
         {
-            self.regionLabel.text += $"\n(Completed: {Utils.GetIGTFormattedTime(TimeSpan.FromMilliseconds(tracker.CompletedFreeTime))} - Lost: {Utils.GetIGTFormattedTime(TimeSpan.FromMilliseconds(tracker.LostFreeTime))}";
+            newTimerText += $"\n(Completed: {Utils.GetIGTFormattedTime(TimeSpan.FromMilliseconds(tracker.CompletedFreeTime))} - Lost: {Utils.GetIGTFormattedTime(TimeSpan.FromMilliseconds(tracker.LostFreeTime))}";
         
             if (tracker.UndeterminedFreeTime != 0.0f)
             {
-                self.regionLabel.text += $" - Undetermined: {Utils.GetIGTFormattedTime(TimeSpan.FromMilliseconds(tracker.UndeterminedFreeTime))})";
+                newTimerText += $" - Undetermined: {Utils.GetIGTFormattedTime(TimeSpan.FromMilliseconds(tracker.UndeterminedFreeTime))})";
             }
 
-            self.regionLabel.text += ")";
+            newTimerText += ")";
         }
+
+        self.regionLabel.text = self.regionLabel.text.Replace(oldTimerText, newTimerText);
     }
 
     
@@ -155,24 +154,23 @@ public static partial class Hooks
         var oldTimerTimeSpan = TimeSpan.FromSeconds(saveGameData.gameTimeAlive + saveGameData.gameTimeDead);
         var oldTimerText = $" ({SpeedRunTimer.TimeFormat(oldTimerTimeSpan)})";
 
-        var tracker = (self.currentMainLoop as RainWorldGame).GetCampaignTimeTracker();
+        var tracker = slugcat.GetCampaignTimeTracker();
 
         if (tracker == null) return;
 
 
         var newTimerText = $" ({Utils.GetIGTFormattedTime(tracker.TotalFreeTimeSpan)})";
 
-        self.validationLabel.text = self.validationLabel.text.Replace(oldTimerText, newTimerText);
-
-
         if (ModOptions.ShowOldTimer.Value)
         {
-            self.validationLabel.text += $" - OLD{oldTimerText}";
+            newTimerText += $" - OLD{oldTimerText}";
         }
 
         if (ModOptions.ShowFixedUpdateTimer.Value)
         {
-            self.validationLabel.text += $" - FIXED ({Utils.GetIGTFormattedTime(tracker.TotalFixedTimeSpan)})";
+            newTimerText += $" - FIXED ({Utils.GetIGTFormattedTime(tracker.TotalFixedTimeSpan)})";
         }
+
+        self.validationLabel.text = self.validationLabel.text.Replace(oldTimerText, newTimerText);
     }
 }
