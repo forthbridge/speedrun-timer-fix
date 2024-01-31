@@ -1,6 +1,5 @@
 ﻿using MoreSlugcats;
 using System;
-using UnityEngine;
 
 namespace SpeedrunTimerFix;
 

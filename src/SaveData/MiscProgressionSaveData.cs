@@ -3,6 +3,7 @@
 namespace SpeedrunTimerFix;
 
 // One of these is attached to each save slot
+// The current save system would probably be unecessary if this was implemented into the PlayerProgression.MiscProgressionData class itself
 public sealed class MiscProgressionSaveData
 {
     // Dictionary of slugcat campaigns : save time data

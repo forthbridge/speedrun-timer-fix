@@ -21,21 +21,21 @@ public sealed class ModOptions : OptionsTemplate
         null, "", "Show Milliseconds?"));
 
     public static Configurable<bool> PreventTimerFading = Instance.config.Bind(nameof(PreventTimerFading), false, new ConfigurableInfo(
-        "When checked, the timer won't fade out, making it more visible all the time.",
+        "When checked, the IGT won't fade out, making it more visible all the time.",
         null, "", "Prevent Timer Fading?"));
 
-    public static Configurable<bool> ShowCompletedAndLost = Instance.config.Bind(nameof(ShowCompletedAndLost), true, new ConfigurableInfo(
+    public static Configurable<bool> ShowCompletedAndLost = Instance.config.Bind(nameof(ShowCompletedAndLost), false, new ConfigurableInfo(
         "When checked, shows completed time (cycles where the player survived) and lost time (cycles where the player died) on the select menu.",
-        null, "", "Show Completed\n& Lost Time?"));
+        null, "", "Show Completed & Lost Time?"));
 
 
     public static Configurable<bool> ShowOldTimer = Instance.config.Bind(nameof(ShowOldTimer), false, new ConfigurableInfo(
         "When checked, displays the old IGT below the new one in game and beside on the select screen.",
-        null, "", "Show Original Timer?"));
+        null, "", "Show Legacy Timer?"));
  
     public static Configurable<bool> ShowFixedUpdateTimer = Instance.config.Bind(nameof(ShowFixedUpdateTimer), false, new ConfigurableInfo(
         "When checked, shows a timer that updates in FixedUpdate. In theory, this accounts for lag across systems. However, it is not recommended to use this as it is affected by glitches that cause dropped frames.",
-        null, "", "Show Free Update Timer?"));
+        null, "", "Show Fixed Update Timer?"));
 
 
     public static readonly Configurable<Color> TimerColor = Instance.config.Bind(nameof(TimerColor), Color.white, new ConfigurableInfo(
@@ -68,7 +68,7 @@ public sealed class ModOptions : OptionsTemplate
 
         AddNewLine(1);
 
-        var offset = new Vector2(0.0f, -150.0f);
+        var offset = new Vector2(0.0f, -100.0f);
 
         var _timerColor = new OpColorPicker(TimerColor, new Vector2(225f + offset.x, 159.0f + offset.y));
         Tabs[tabIndex].AddItems(_timerColor, new OpLabel(new Vector2(225f + offset.x, 317.0f + offset.y), new Vector2(150.0f + offset.x, 16.0f + offset.y), TimerColor.info.Tags[0].ToString()));

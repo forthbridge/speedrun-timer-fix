@@ -1,6 +1,4 @@
-﻿using MoreSlugcats;
-using System;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace SpeedrunTimerFix;
 
@@ -30,6 +28,7 @@ public static partial class Hooks
         orig(self);
 
         if (IsFirstLoadFinished) return;
+        
         IsFirstLoadFinished = true;
 
 
@@ -43,9 +42,9 @@ public static partial class Hooks
 
 
     // TimeTick is used by the old timer, however the old timer only counts secondns
-    private static void StoryGameSession_TimeTick(On.StoryGameSession.orig_TimeTick orig, StoryGameSession self, float deltaTime)
+    private static void StoryGameSession_TimeTick(On.StoryGameSession.orig_TimeTick orig, StoryGameSession self, float dt)
     {
-        orig(self, deltaTime);
+        orig(self, dt);
 
         // Ensure the timer should be incrementing
         if (RainWorld.lockGameTimer) return;
@@ -59,7 +58,7 @@ public static partial class Hooks
         if (self.game.cameras[0].hud == null) return;
 
 
-        tracker.UndeterminedFreeTime += GetTimerTickIncrement(self.game);
+        tracker.UndeterminedFreeTime += GetTimerTickIncrement(self.game, dt);
     }
 
     // Updating the timer within RainWorldGame.Update means it is within the fixed update loop - it will account for lag, but this may not be desired when glitches intentionally drop frames
@@ -84,16 +83,15 @@ public static partial class Hooks
 
         if (self.cameras[0].hud == null) return;
 
+        var deltaTime = 1.0 / self.framesPerSecond;
 
-        tracker.UndeterminedFixedTime += GetTimerTickIncrement(self);
+        tracker.UndeterminedFixedTime += GetTimerTickIncrement(self, deltaTime);
     }
 
-    // Returns the amount the timer should be incremented by for a given time tick
-    // These are the default conditions for the timer to be incremented
-    private static double GetTimerTickIncrement(RainWorldGame self)
+    // Returns the amount the timer should be incremented by for a given time tick, based on certain conditions
+    private static double GetTimerTickIncrement(RainWorldGame self, double deltaTime)
     {
         var toIncrement = 0.0;
-        var deltaTime = 1.0f / self.framesPerSecond;
 
         if (self.cameras[0].hud.textPrompt.gameOverMode)
         {
@@ -112,6 +110,7 @@ public static partial class Hooks
 
     
 
+    // Add completed time on save, if the player is not starving
     private static bool PlayerProgression_SaveWorldStateAndProgression(On.PlayerProgression.orig_SaveWorldStateAndProgression orig, PlayerProgression self, bool malnourished)
     {
         var tracker = self.PlayingAsSlugcat.GetCampaignTimeTracker();
@@ -127,6 +126,7 @@ public static partial class Hooks
         return orig(self, malnourished);
     }
      
+    // Add lost time if the player died
     private static void StoryGameSession_AppendTimeOnCycleEnd(On.StoryGameSession.orig_AppendTimeOnCycleEnd orig, StoryGameSession self, bool deathOrGhost)
     {
         var tracker = self.game.GetCampaignTimeTracker();
