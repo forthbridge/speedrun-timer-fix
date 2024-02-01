@@ -19,8 +19,8 @@ public sealed class ModOptions : OptionsTemplate
     // Configurables
 
     public static Configurable<bool> ShowMilliseconds { get; } = Instance.config.Bind(nameof(ShowMilliseconds), true, new ConfigurableInfo(
-        "When checked, timers will show milliseconds. This is purely visual and time is tracked the same regardless.",
-        null, "", "Show Milliseconds?"));
+        "When checked, IGT timer will show milliseconds. This is purely visual and time is tracked the same regardless. Does not affect timers shown in menus which depend on speedrun verification being enabled instead.",
+        null, "", "Show IGT Milliseconds?"));
 
     public static Configurable<bool> PreventTimerFading { get; } = Instance.config.Bind(nameof(PreventTimerFading), false, new ConfigurableInfo(
         "When checked, the IGT won't fade out, making it more visible all the time.",
@@ -35,8 +35,8 @@ public sealed class ModOptions : OptionsTemplate
         null, "", "Show Legacy Timer?"));
  
     public static Configurable<bool> ShowFixedUpdateTimer { get; } = Instance.config.Bind(nameof(ShowFixedUpdateTimer), false, new ConfigurableInfo(
-        "When checked, shows a timer that updates in FixedUpdate. In theory, this accounts for lag across systems. However, it is not recommended to use this as it is affected by glitches that cause dropped frames.",
-        null, "", "Show Fixed Update Timer?"));
+        "When checked, shows a timer that updates in the fixed update loop. In theory, this accounts for lag across systems. However, it is not recommended to use this as it is affected by glitches that cause dropped frames.",
+        null, "", "Show Lag Compensating Timer?"));
 
     public static Configurable<bool> ShowTimerInSleepScreen { get; } = Instance.config.Bind(nameof(ShowTimerInSleepScreen), false, new ConfigurableInfo(
         "When checked, the speedrun timer will be shown in the sleep screen.",

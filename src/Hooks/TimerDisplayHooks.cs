@@ -51,7 +51,7 @@ public static partial class Hooks
         if (tracker == null) return;
 
 
-        self.timeLabel.text = Utils.GetIGTFormattedTime(tracker.TotalFreeTimeSpan);
+        self.timeLabel.text = Utils.GetIGTFormatOptionalMs(tracker.TotalFreeTimeSpan);
 
 
         if (ModOptions.ShowOldTimer.Value)
@@ -61,7 +61,7 @@ public static partial class Hooks
 
         if (ModOptions.ShowFixedUpdateTimer.Value)
         {
-            self.timeLabel.text += $"\nFIXED ({Utils.GetIGTFormattedTime(tracker.TotalFixedTimeSpan)})";
+            self.timeLabel.text += $"\nLAG ({Utils.GetIGTFormatOptionalMs(tracker.TotalFixedTimeSpan)})";
         }
 
 
@@ -116,7 +116,7 @@ public static partial class Hooks
         var oldTimerTimeSpan = TimeSpan.FromSeconds(self.saveGameData.gameTimeAlive + self.saveGameData.gameTimeDead);
         var oldTimerText = $" ({SpeedRunTimer.TimeFormat(oldTimerTimeSpan)})";
 
-        var newTimerText = $" ({Utils.GetIGTFormattedTime(tracker.TotalFreeTimeSpan)})";
+        var newTimerText = $" ({Utils.GetIGTFormatConditionalMs(tracker.TotalFreeTimeSpan)})";
 
         if (ModOptions.ShowOldTimer.Value)
         {
@@ -125,16 +125,16 @@ public static partial class Hooks
 
         if (ModOptions.ShowFixedUpdateTimer.Value)
         {
-            newTimerText += $" - FIXED ({Utils.GetIGTFormattedTime(tracker.TotalFixedTimeSpan)})";
+            newTimerText += $" - LAG ({Utils.GetIGTFormatConditionalMs(tracker.TotalFixedTimeSpan)})";
         }
 
         if (ModOptions.ShowCompletedAndLost.Value)
         {
-            newTimerText += $"\n(Completed: {Utils.GetIGTFormattedTime(TimeSpan.FromMilliseconds(tracker.CompletedFreeTime))} - Lost: {Utils.GetIGTFormattedTime(TimeSpan.FromMilliseconds(tracker.LostFreeTime))}";
+            newTimerText += $"\n(Completed: {Utils.GetIGTFormatConditionalMs(TimeSpan.FromMilliseconds(tracker.CompletedFreeTime))} - Lost: {Utils.GetIGTFormatConditionalMs(TimeSpan.FromMilliseconds(tracker.LostFreeTime))}";
         
             if (tracker.UndeterminedFreeTime != 0.0f)
             {
-                newTimerText += $" - Undetermined: {Utils.GetIGTFormattedTime(TimeSpan.FromMilliseconds(tracker.UndeterminedFreeTime))}";
+                newTimerText += $" - Undetermined: {Utils.GetIGTFormatConditionalMs(TimeSpan.FromMilliseconds(tracker.UndeterminedFreeTime))}";
             }
 
             newTimerText += ")";
@@ -163,7 +163,7 @@ public static partial class Hooks
         if (tracker == null) return;
 
 
-        var newTimerText = $" ({Utils.GetIGTFormattedTime(tracker.TotalFreeTimeSpan)})";
+        var newTimerText = $" ({Utils.GetIGTFormatConditionalMs(tracker.TotalFreeTimeSpan)})";
 
         if (ModOptions.ShowOldTimer.Value)
         {
@@ -172,7 +172,7 @@ public static partial class Hooks
 
         if (ModOptions.ShowFixedUpdateTimer.Value)
         {
-            newTimerText += $" - FIXED ({Utils.GetIGTFormattedTime(tracker.TotalFixedTimeSpan)})";
+            newTimerText += $" - LAG ({Utils.GetIGTFormatConditionalMs(tracker.TotalFixedTimeSpan)})";
         }
 
         self.validationLabel.text = self.validationLabel.text.Replace(oldTimerText, newTimerText);
@@ -194,7 +194,7 @@ public static partial class Hooks
         if (tracker == null) return;
 
 
-        var speedrunTimerText = Utils.GetIGTFormattedTime(tracker.TotalFreeTimeSpan);
+        var speedrunTimerText = Utils.GetIGTFormatConditionalMs(tracker.TotalFreeTimeSpan);
 
         if (ModOptions.ShowOldTimer.Value)
         {
@@ -211,7 +211,7 @@ public static partial class Hooks
 
         if (ModOptions.ShowFixedUpdateTimer.Value)
         {
-            speedrunTimerText += $"\nFIXED ({Utils.GetIGTFormattedTime(tracker.TotalFixedTimeSpan)})";
+            speedrunTimerText += $"\nLAG ({Utils.GetIGTFormatConditionalMs(tracker.TotalFixedTimeSpan)})";
         }
 
         var timerPos = new Vector2(0.0f, 700.0f);

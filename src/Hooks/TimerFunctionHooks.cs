@@ -39,6 +39,7 @@ public static partial class Hooks
     }
 
 
+
     // TimeTick is used by the old timer, however the old timer only counts secondns
     private static void StoryGameSession_TimeTick(On.StoryGameSession.orig_TimeTick orig, StoryGameSession self, float dt)
     {

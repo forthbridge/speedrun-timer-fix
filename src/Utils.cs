@@ -1,4 +1,5 @@
-﻿using RWCustom;
+﻿using MoreSlugcats;
+using RWCustom;
 using System;
 
 namespace SpeedrunTimerFix;
@@ -6,7 +7,7 @@ namespace SpeedrunTimerFix;
 public static class Utils
 {
     // Takes in TimeSpan and returns a string formatted to display as the IGT
-    public static string GetIGTFormattedTime(this TimeSpan timeSpan)
+    public static string GetIGTFormat(this TimeSpan timeSpan, bool includeMilliseconds)
     {
         string formattedTime = string.Format("{0:D3}h:{1:D2}m:{2:D2}s", new object[3]
         {
@@ -15,13 +16,19 @@ public static class Utils
             timeSpan.Seconds
         });
 
-        if (!ModOptions.ShowMilliseconds.Value)
+        if (!includeMilliseconds)
         {
             return formattedTime;
         }
 
         return formattedTime + $":{timeSpan.Milliseconds:000}ms";
     }
+
+
+    // Optional: Shows milliseconds depending on the mod's configuration
+    // Conditional: Shows milliseconds if the Remix timer is enabled or speedrun verification is enabled
+    public static string GetIGTFormatOptionalMs(this TimeSpan timeSpan) => GetIGTFormat(timeSpan, ModOptions.ShowMilliseconds.Value);
+    public static string GetIGTFormatConditionalMs(this TimeSpan timeSpan) => GetIGTFormat(timeSpan, (ModManager.MMF && MMF.cfgSpeedrunTimer.Value) || Custom.rainWorld.options.validation);
 
 
     public static CampaignTimerSaveData? GetCampaignTimeTracker(this RainWorldGame? game) => game?.GetStorySession?.saveStateNumber?.GetCampaignTimeTracker();
@@ -41,6 +48,7 @@ public static class Utils
 
         return tracker;
     }
+
 
     public static MiscProgressionSaveData? GetMiscProgression() => Custom.rainWorld?.progression?.miscProgressionData?.GetMiscProgression();
     public static MiscProgressionSaveData GetMiscProgression(this PlayerProgression.MiscProgressionData data)

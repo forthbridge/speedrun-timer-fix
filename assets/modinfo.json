@@ -1,7 +1,7 @@
 {
 	"id": "speedruntimerfix",
 	"name": "Speedrun Timer Fix",
-	"version": "2.0.0",
+	"version": "2.0.1",
 	"authors": "forthbridge",
 	"description": "Improves the built-in speedrun timer, which does not count time properly in some scenarios.",
 	"tags": ["Accessibility", "Tools"],
