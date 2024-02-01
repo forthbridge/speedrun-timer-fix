@@ -36,7 +36,7 @@ public sealed class ModOptions : OptionsTemplate
  
     public static Configurable<bool> ShowFixedUpdateTimer { get; } = Instance.config.Bind(nameof(ShowFixedUpdateTimer), false, new ConfigurableInfo(
         "When checked, shows a timer that updates in the fixed update loop. In theory, this accounts for lag across systems. However, it is not recommended to use this as it is affected by glitches that cause dropped frames.",
-        null, "", "Show Lag Compensating Timer?"));
+        null, "", "Show Lag\nCompensating Timer?"));
 
     public static Configurable<bool> ShowTimerInSleepScreen { get; } = Instance.config.Bind(nameof(ShowTimerInSleepScreen), false, new ConfigurableInfo(
         "When checked, the speedrun timer will be shown in the sleep screen.",
