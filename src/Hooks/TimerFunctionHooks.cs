@@ -16,6 +16,7 @@ public static partial class Hooks
         On.StoryGameSession.AppendTimeOnCycleEnd += StoryGameSession_AppendTimeOnCycleEnd;
 
         On.PlayerProgression.WipeSaveState += PlayerProgression_WipeSaveState;
+        On.ProcessManager.RequestMainProcessSwitch_ProcessID_float += ProcessManager_RequestMainProcessSwitch_ProcessID_float;
 
         On.Menu.SlugcatSelectMenu.Update += SlugcatSelectMenu_Update;
 
@@ -154,6 +155,33 @@ public static partial class Hooks
         tracker.WipeTimes();
     }
 
+    // This issue only occurs when the main menu is skipped and a campaign is entered immediately (e.g. through the use of start screen: 0 in startup.txt)
+    // If the campaign is a new game, the timer will not be wiped and the time from the pre-wipe save will be used
+    // So, wipe the tracker when a new game is started (this is based on the NEW GAME validation label logic, I'm not sure this is the best way to do this)
+    private static void ProcessManager_RequestMainProcessSwitch_ProcessID_float(On.ProcessManager.orig_RequestMainProcessSwitch_ProcessID_float orig, ProcessManager self, ProcessManager.ProcessID ID, float fadeOutSeconds)
+    {
+        orig(self, ID, fadeOutSeconds);
+
+        if (ID != ProcessManager.ProcessID.Game) return;
+
+        if (self.arenaSitting != null) return;
+
+        if (ModManager.MSC && self.rainWorld.safariMode) return;
+
+
+        var campaign = self.rainWorld.progression.miscProgressionData.currentlySelectedSinglePlayerSlugcat;
+        var tracker = campaign.GetCampaignTimeTracker();
+        
+        if (tracker == null) return;
+        
+
+        var saveGameData = Menu.SlugcatSelectMenu.MineForSaveData(self, campaign);
+
+        if (saveGameData == null)
+        {
+            tracker.WipeTimes();
+        }
+    }
 
 
     // Allow a manual trigger of the new tracker to fallback to the old timer from the slugcat select menu, if SHIFT + R is pressed while the restart checkbox is checked
