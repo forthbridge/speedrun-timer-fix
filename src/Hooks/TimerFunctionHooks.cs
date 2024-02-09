@@ -155,9 +155,10 @@ public static partial class Hooks
         tracker.WipeTimes();
     }
 
-    // This issue only occurs when the main menu is skipped and a campaign is entered immediately (e.g. through the use of start screen: 0 in startup.txt)
+    // This issue only occurs when the main menu is skipped and a campaign is entered immediately (e.g. through the use of start screen: 0 in setup.txt)
     // If the campaign is a new game, the timer will not be wiped and the time from the pre-wipe save will be used
     // So, wipe the tracker when a new game is started (this is based on the NEW GAME validation label logic, I'm not sure this is the best way to do this)
+    // We run the risk of incorrectly wiping the times if MineForSaveData doesn't do it's job for whatever reason
     private static void ProcessManager_RequestMainProcessSwitch_ProcessID_float(On.ProcessManager.orig_RequestMainProcessSwitch_ProcessID_float orig, ProcessManager self, ProcessManager.ProcessID ID, float fadeOutSeconds)
     {
         orig(self, ID, fadeOutSeconds);
