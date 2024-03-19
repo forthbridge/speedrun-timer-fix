@@ -47,7 +47,5 @@ public static partial class Hooks
     {
         ApplyTimerFunctionHooks();
         ApplyTimerDisplayHooks();
-
-        ApplySaveDataHooks();
     }
 }

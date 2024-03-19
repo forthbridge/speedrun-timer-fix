@@ -10,7 +10,7 @@ using System.Security;
 
 namespace SpeedrunTimerFix;
 
-[BepInPlugin(MOD_ID, MOD_ID, "1.0.0")]
+[BepInPlugin(MOD_ID, MOD_ID, "3.0.0")]
 public sealed class Plugin : BaseUnityPlugin
 {
     public const string MOD_ID = "speedruntimerfix";

@@ -1,5 +1,6 @@
 ﻿using Menu;
 using MoreSlugcats;
+using RWCustom;
 using System;
 using UnityEngine;
 
@@ -10,7 +11,6 @@ public static partial class Hooks
     public static void ApplyTimerDisplayHooks()
     {
         On.MoreSlugcats.SpeedRunTimer.Update += SpeedRunTimer_Update;
-        On.MoreSlugcats.SpeedRunTimer.Draw += SpeedRunTimer_Draw;
         
         On.Menu.SlugcatSelectMenu.SlugcatPageContinue.ctor += SlugcatPageContinue_ctor;
 
@@ -19,18 +19,6 @@ public static partial class Hooks
         On.Menu.SleepAndDeathScreen.GetDataFromGame += SleepAndDeathScreen_GetDataFromGame;
     }
 
-
-    // Replace in-game display
-    private static void SpeedRunTimer_Draw(On.MoreSlugcats.SpeedRunTimer.orig_Draw orig, SpeedRunTimer self, float timeStacker)
-    {
-        orig(self, timeStacker);
-
-        // Stops the timer jittering around due to the rapid text changes associated with displaying milliseconds
-        if (ModOptions.ShowMilliseconds.Value)
-        {
-            self.timeLabel.alignment = FLabelAlignment.Left;
-        }
-    }
 
     private static void SpeedRunTimer_Update(On.MoreSlugcats.SpeedRunTimer.orig_Update orig, SpeedRunTimer self)
     {
@@ -46,7 +34,7 @@ public static partial class Hooks
         orig(self);
 
 
-        var tracker = self.ThePlayer()?.abstractCreature?.world?.game?.GetCampaignTimeTracker();
+        var tracker = Utils.GetCampaignTimeTracker();
 
         if (tracker == null) return;
 
@@ -56,7 +44,18 @@ public static partial class Hooks
 
         if (ModOptions.ShowOldTimer.Value)
         {
-            self.timeLabel.text += $"\nOLD ({SpeedRunTimer.TimeFormat(self.timing)})";
+            var game = Utils.RainWorldGame;
+
+            if (game != null)
+            {
+                var timing = TimeSpan.FromSeconds(
+                    game.GetStorySession.saveState.totTime +
+                    game.GetStorySession.saveState.deathPersistentSaveData.deathTime +
+                    game.GetStorySession.playerSessionRecords[0].time / 40 +
+                    game.GetStorySession.playerSessionRecords[0].playerGrabbedTime / 40);
+                
+                self.timeLabel.text += $"\nOLD ({SpeedRunTimer.TimeFormat(timing)})";
+            }
         }
 
         if (ModOptions.ShowFixedUpdateTimer.Value)
@@ -64,20 +63,18 @@ public static partial class Hooks
             self.timeLabel.text += $"\nLAG ({Utils.GetIGTFormatOptionalMs(tracker.TotalFixedTimeSpan)})";
         }
 
-
-        if (ModOptions.ShowMilliseconds.Value)
+        if (!ModOptions.ShowMilliseconds.Value)
         {
             self.lastPos.x = lastPosX;
-            self.pos.x -= 95.0f; 
+            self.pos.x += 30.0f;
         }
-
 
         if (ModOptions.ShowOldTimer.Value && ModOptions.ShowFixedUpdateTimer.Value)
         {
             self.pos.y -= 15.0f;
         }
 
-        if ((ModOptions.ShowOldTimer.Value || ModOptions.ShowFixedUpdateTimer.Value) && self.ThePlayer().abstractCreature.world.game.devToolsActive)
+        if ((ModOptions.ShowOldTimer.Value || ModOptions.ShowFixedUpdateTimer.Value) && Utils.RainWorldGame?.devToolsActive == true)
         {
             self.pos.y -= 15.0f;
         }
@@ -106,15 +103,8 @@ public static partial class Hooks
 
         if (tracker == null) return;
 
-        // If the tracker has a void time, then we should load the old timer into the tracker as fallback
-        if (tracker.TotalFreeTime == 0.0f || tracker.TotalFixedTime == 0.0f)
-        {
-            tracker.LoadOldTimings(self.saveGameData.gameTimeAlive, self.saveGameData.gameTimeDead);
-        }
-
-
-        var oldTimerTimeSpan = TimeSpan.FromSeconds(self.saveGameData.gameTimeAlive + self.saveGameData.gameTimeDead);
-        var oldTimerText = $" ({SpeedRunTimer.TimeFormat(oldTimerTimeSpan)})";
+        var oldTimerTimeSpan = Custom.GetIGTFormat(tracker.TotalFreeTimeSpan, true);
+        var oldTimerText = $" ({oldTimerTimeSpan})";
 
         var newTimerText = $" ({Utils.GetIGTFormatConditionalMs(tracker.TotalFreeTimeSpan)})";
 
@@ -155,13 +145,12 @@ public static partial class Hooks
         if (saveGameData == null) return;
 
 
-        var oldTimerTimeSpan = TimeSpan.FromSeconds(saveGameData.gameTimeAlive + saveGameData.gameTimeDead);
-        var oldTimerText = $" ({SpeedRunTimer.TimeFormat(oldTimerTimeSpan)})";
-
         var tracker = slugcat.GetCampaignTimeTracker();
 
         if (tracker == null) return;
 
+        var oldTimerTimeSpan = Custom.GetIGTFormat(tracker.TotalFreeTimeSpan, true);
+        var oldTimerText = $" ({oldTimerTimeSpan})";
 
         var newTimerText = $" ({Utils.GetIGTFormatConditionalMs(tracker.TotalFreeTimeSpan)})";
 
