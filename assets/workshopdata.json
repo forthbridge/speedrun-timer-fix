@@ -1,0 +1,17 @@
+{
+  "Title": "Speedrun Timer Tweaks",
+  "Description": "Adds some additional customization options to the built-in speedrun timer!\u003CLINE\u003E\u003CLINE\u003EThis mod used to improve the IGT before it was integrated into the base game - it is still compatible with 1.9.07b, and retains its original function when using that version.",
+  "ID": "speedruntimerfix",
+  "Version": "3.0.0",
+  "TargetGameVersion": "v1.9.15",
+  "Requirements": "",
+  "RequirementNames": "",
+  "Authors": "forthbridge",
+  "Visibility": "Public",
+  "Tags": [
+    "Accessibility",
+    "Tools"
+  ],
+  "WorkshopID": 0,
+  "UploadFilesOnly": true
+}
