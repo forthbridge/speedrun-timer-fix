@@ -1,15 +1,17 @@
-[h1]Fixes the built-in speedrun timer, which does not count time properly in some scenarios![/h1]
+[h1]Allows further customization of the in-game timer![/h1]
+
+[b]Previously, this mod improved the functionality of the timer as well - this has been integrated into the base game.[/b]
+[b]It should retain its original functionality with 1.9.07b, if you want to stay on the old version.[/b]
 
 [h1]Features:[/h1]
 [b][list]
-    [*]Millisecond display option
-    [*]Starve cycle time is counted properly
+    [*]Option to toggle display of milliseconds
 
     [*]Option to display survived (completed) and death (lost) time separately on the select menu
     [*]Option to change the in-game timer's colour
     [*]Option to prevent the in-game timer from fading
 
-    [*]New timer based on physics updates, should compensate for lag so timing is consistent between hardware
+    [*]Option to display both a lag compensating timer, and the old timer from previous updates
 [/list][/b]
-[b](thumbnail by my sister)[/b]
+[b](thumbnail by Kimi)[/b]
 [u][b]Source: https://github.com/forthbridge/speedrun-timer-fix[/b][/u]
