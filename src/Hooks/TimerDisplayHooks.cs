@@ -48,13 +48,13 @@ public static partial class Hooks
 
             if (game != null)
             {
-                var timing = TimeSpan.FromSeconds(
+                var oldTiming = TimeSpan.FromSeconds(
                     game.GetStorySession.saveState.totTime +
                     game.GetStorySession.saveState.deathPersistentSaveData.deathTime +
                     game.GetStorySession.playerSessionRecords[0].time / 40 +
                     game.GetStorySession.playerSessionRecords[0].playerGrabbedTime / 40);
                 
-                self.timeLabel.text += $"\nOLD ({SpeedRunTimer.TimeFormat(timing)})";
+                self.timeLabel.text += $"\nOLD ({SpeedRunTimer.TimeFormat(oldTiming)})";
             }
         }
 
@@ -103,14 +103,16 @@ public static partial class Hooks
 
         if (tracker == null) return;
 
-        var oldTimerTimeSpan = Custom.GetIGTFormat(tracker.TotalFreeTimeSpan, true);
-        var oldTimerText = $" ({oldTimerTimeSpan})";
+        var existingTimerFormatted = Custom.GetIGTFormat(tracker.TotalFreeTimeSpan, true);
+        var existingTimerText = $" ({existingTimerFormatted})";
 
         var newTimerText = $" ({Utils.GetIGTFormatConditionalMs(tracker.TotalFreeTimeSpan)})";
 
         if (ModOptions.ShowOldTimer.Value)
         {
-            newTimerText += $" - OLD{oldTimerText}";
+            var oldTiming = TimeSpan.FromSeconds(self.saveGameData.gameTimeAlive + self.saveGameData.gameTimeDead);
+            var oldTimerFormatted = $" ({SpeedRunTimer.TimeFormat(oldTiming)})";
+            newTimerText += $" - OLD{oldTimerFormatted}";
         }
 
         if (ModOptions.ShowFixedUpdateTimer.Value)
@@ -130,7 +132,7 @@ public static partial class Hooks
             newTimerText += ")";
         }
 
-        self.regionLabel.text = self.regionLabel.text.Replace(oldTimerText, newTimerText);
+        self.regionLabel.text = self.regionLabel.text.Replace(existingTimerText, newTimerText);
     }
 
     
@@ -149,14 +151,16 @@ public static partial class Hooks
 
         if (tracker == null) return;
 
-        var oldTimerTimeSpan = Custom.GetIGTFormat(tracker.TotalFreeTimeSpan, true);
-        var oldTimerText = $" ({oldTimerTimeSpan})";
+        var existingTimerFormatted = Custom.GetIGTFormat(tracker.TotalFreeTimeSpan, true);
+        var existingTimerText = $" ({existingTimerFormatted})";
 
         var newTimerText = $" ({Utils.GetIGTFormatConditionalMs(tracker.TotalFreeTimeSpan)})";
 
         if (ModOptions.ShowOldTimer.Value)
         {
-            newTimerText += $" - OLD{oldTimerText}";
+            var oldTiming = TimeSpan.FromSeconds(saveGameData.gameTimeAlive + saveGameData.gameTimeDead);
+            var oldTimerFormatted = $" ({SpeedRunTimer.TimeFormat(oldTiming)})";
+            newTimerText += $" - OLD{oldTimerFormatted}";
         }
 
         if (ModOptions.ShowFixedUpdateTimer.Value)
@@ -164,7 +168,7 @@ public static partial class Hooks
             newTimerText += $" - LAG ({Utils.GetIGTFormatConditionalMs(tracker.TotalFixedTimeSpan)})";
         }
 
-        self.validationLabel.text = self.validationLabel.text.Replace(oldTimerText, newTimerText);
+        self.validationLabel.text = self.validationLabel.text.Replace(existingTimerText, newTimerText);
     }
 
 

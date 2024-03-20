@@ -29,5 +29,20 @@ public static partial class Hooks
 
             self.manager.RequestMainProcessSwitch(ProcessManager.ProcessID.SlugcatSelect);
         }
+        else if (self.restartChecked && Input.GetKey(KeyCode.LeftShift) && Input.GetKey(KeyCode.F))
+        {
+            self.restartChecked = false;
+
+            var slugcatPage = self.slugcatPages[self.slugcatPageIndex];
+            var tracker = SpeedRunTimer.GetCampaignTimeTracker(slugcatPage.slugcatNumber);
+
+            if (tracker == null) return;
+
+            tracker.CompletedFixedTime = tracker.CompletedFreeTime;
+            tracker.LostFixedTime = tracker.LostFreeTime;
+            tracker.UndeterminedFixedTime = tracker.UndeterminedFreeTime;
+
+            self.manager.RequestMainProcessSwitch(ProcessManager.ProcessID.SlugcatSelect);
+        }
     }
 }
