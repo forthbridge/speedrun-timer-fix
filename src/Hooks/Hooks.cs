@@ -25,7 +25,7 @@ public static partial class Hooks
             ApplyHooks();
 
             // Fetch metadata about the mod
-            var mod = ModManager.ActiveMods.FirstOrDefault(mod => mod.id == Plugin.MOD_ID);
+            var mod = ModManager.ActiveMods.First(mod => mod.id == Plugin.MOD_ID);
 
             Plugin.MOD_NAME = mod.name;
             Plugin.VERSION = mod.version;
@@ -33,7 +33,7 @@ public static partial class Hooks
         }
         catch (Exception e)
         {
-            Plugin.Logger.LogError("OnModsInit:\n" + e.Message);
+            Plugin.Logger.LogError("OnModsInit:\n" + e.Message + '\n' + e.StackTrace);
         }
         finally
         {

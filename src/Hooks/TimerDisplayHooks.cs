@@ -39,46 +39,58 @@ public static partial class Hooks
         if (tracker == null) return;
 
 
-        self.timeLabel.text = Utils.GetIGTFormatOptionalMs(tracker.TotalFreeTimeSpan);
+        self.timeLabel.text = tracker.TotalFreeTimeSpan.GetIGTFormatOptionalMs();
+
+        var additionalTimersShown = 0;
 
 
         if (ModOptions.ShowOldTimer.Value)
         {
             var game = Utils.RainWorldGame;
 
-            if (game != null)
+            if (game != null && game.IsStorySession)
             {
                 var oldTiming = TimeSpan.FromSeconds(
                     game.GetStorySession.saveState.totTime +
                     game.GetStorySession.saveState.deathPersistentSaveData.deathTime +
-                    game.GetStorySession.playerSessionRecords[0].time / 40 +
-                    game.GetStorySession.playerSessionRecords[0].playerGrabbedTime / 40);
+                    game.GetStorySession.playerSessionRecords[0].time / 40.0f +
+                    game.GetStorySession.playerSessionRecords[0].playerGrabbedTime / 40.0f);
                 
                 self.timeLabel.text += $"\nOLD ({SpeedRunTimer.TimeFormat(oldTiming)})";
+
+                additionalTimersShown++;
             }
         }
 
         if (ModOptions.ShowFixedUpdateTimer.Value)
         {
-            self.timeLabel.text += $"\nLAG ({Utils.GetIGTFormatOptionalMs(tracker.TotalFixedTimeSpan)})";
+            self.timeLabel.text += $"\nLAG ({tracker.TotalFixedTimeSpan.GetIGTFormatOptionalMs()})";
+
+            additionalTimersShown++;
         }
+
+        if (ModOptions.ShowTotTime.Value)
+        {
+            var game = Utils.RainWorldGame;
+
+            if (game != null && game.IsStorySession)
+            {
+                var totTime = game.GetStorySession.saveState.totTime;
+
+                var totTimeSpan = TimeSpan.FromSeconds(totTime);
+
+                self.timeLabel.text += $"\nTOT ({SpeedRunTimer.TimeFormat(totTimeSpan)})";
+            }
+
+            additionalTimersShown++;
+        }
+
 
         if (!ModOptions.ShowMilliseconds.Value)
         {
             self.lastPos.x = lastPosX;
             self.pos.x += 30.0f;
         }
-
-        if (ModOptions.ShowOldTimer.Value && ModOptions.ShowFixedUpdateTimer.Value)
-        {
-            self.pos.y -= 15.0f;
-        }
-
-        if ((ModOptions.ShowOldTimer.Value || ModOptions.ShowFixedUpdateTimer.Value) && Utils.RainWorldGame?.devToolsActive == true)
-        {
-            self.pos.y -= 15.0f;
-        }
-
 
         if (ModOptions.PreventTimerFading.Value)
         {
@@ -87,6 +99,61 @@ public static partial class Hooks
         }
 
         self.timeLabel.color = ModOptions.TimerColor.Value;
+
+
+        var screenSize = self.hud.rainWorld.options.ScreenSize;
+        var additionalTimerOffset = -15.0f;
+
+        switch (ModOptions.TimerPosition.Value)
+        {
+            case "Top (Default)":
+                break;
+
+            case "Top Left":
+                self.pos.x += -(screenSize.x / 2.0f) + 1252.0f;
+                break;
+
+            case "Top Right":
+                self.pos.x += (screenSize.x / 2.0f) - 125.0f;
+                break;
+
+            case "Bottom Left":
+                additionalTimerOffset = 15.0f;
+
+                self.pos.x += -(screenSize.x / 2.0f) + 125.0f;
+
+                self.pos.y += -screenSize.y + 75.0f;
+                break;
+
+            case "Bottom Right":
+                additionalTimerOffset = 15.0f;
+
+                self.pos.x += (screenSize.x / 2.0f) - 125.0f;
+
+                self.pos.y += -screenSize.y + 75.0f;
+                break;
+
+            case "Bottom":
+                additionalTimerOffset = 15.0f;
+
+                self.pos.y += -screenSize.y + 75.0f;
+                break;
+        }
+
+        if (additionalTimersShown > 1)
+        {
+            self.pos.y += additionalTimerOffset * (additionalTimersShown - 1);
+        }
+
+        if (ModOptions.TimerPosition.Value == "Top (Default)" && additionalTimersShown > 0 && Utils.RainWorldGame?.devToolsActive == true)
+        {
+            self.pos.y += additionalTimerOffset;
+        }
+
+        if (ModOptions.TimerPosition.Value == "Bottom Left" && self.hud.karmaMeter.fade > 0.0f)
+        {
+            self.pos.y += 65.0f;
+        }
     }
 
 
@@ -103,10 +170,12 @@ public static partial class Hooks
 
         if (tracker == null) return;
 
-        var existingTimerFormatted = Custom.GetIGTFormat(tracker.TotalFreeTimeSpan, true);
+
+        var existingTimerFormatted = tracker.TotalFreeTimeSpan.GetIGTFormat(true);
         var existingTimerText = $" ({existingTimerFormatted})";
 
-        var newTimerText = $" ({Utils.GetIGTFormatConditionalMs(tracker.TotalFreeTimeSpan)})";
+        var newTimerText = $" ({tracker.TotalFreeTimeSpan.GetIGTFormatConditionalMs()})";
+
 
         if (ModOptions.ShowOldTimer.Value)
         {
@@ -117,16 +186,24 @@ public static partial class Hooks
 
         if (ModOptions.ShowFixedUpdateTimer.Value)
         {
-            newTimerText += $" - LAG ({Utils.GetIGTFormatConditionalMs(tracker.TotalFixedTimeSpan)})";
+            newTimerText += $" - LAG ({tracker.TotalFixedTimeSpan.GetIGTFormatConditionalMs()})";
         }
+
+        if (ModOptions.ShowTotTime.Value)
+        {
+            var totTime = TimeSpan.FromSeconds(self.saveGameData.gameTimeAlive);
+            var totTimeFormatted = $" ({SpeedRunTimer.TimeFormat(totTime)})";
+            newTimerText += $" - TOT{totTimeFormatted}";
+        }
+
 
         if (ModOptions.ShowCompletedAndLost.Value)
         {
-            newTimerText += $"\n(Completed: {Utils.GetIGTFormatConditionalMs(TimeSpan.FromMilliseconds(tracker.CompletedFreeTime))} - Lost: {Utils.GetIGTFormatConditionalMs(TimeSpan.FromMilliseconds(tracker.LostFreeTime))}";
+            newTimerText += $"\n(Completed: {TimeSpan.FromMilliseconds(tracker.CompletedFreeTime).GetIGTFormatConditionalMs()} - Lost: {TimeSpan.FromMilliseconds(tracker.LostFreeTime).GetIGTFormatConditionalMs()}";
         
             if (tracker.UndeterminedFreeTime != 0.0f)
             {
-                newTimerText += $" - Undetermined: {Utils.GetIGTFormatConditionalMs(TimeSpan.FromMilliseconds(tracker.UndeterminedFreeTime))}";
+                newTimerText += $" - Undetermined: {TimeSpan.FromMilliseconds(tracker.UndeterminedFreeTime).GetIGTFormatConditionalMs()}";
             }
 
             newTimerText += ")";
@@ -151,10 +228,12 @@ public static partial class Hooks
 
         if (tracker == null) return;
 
-        var existingTimerFormatted = Custom.GetIGTFormat(tracker.TotalFreeTimeSpan, true);
+
+        var existingTimerFormatted = tracker.TotalFreeTimeSpan.GetIGTFormat(true);
         var existingTimerText = $" ({existingTimerFormatted})";
 
-        var newTimerText = $" ({Utils.GetIGTFormatConditionalMs(tracker.TotalFreeTimeSpan)})";
+        var newTimerText = $" ({tracker.TotalFreeTimeSpan.GetIGTFormatConditionalMs()})";
+
 
         if (ModOptions.ShowOldTimer.Value)
         {
@@ -165,7 +244,14 @@ public static partial class Hooks
 
         if (ModOptions.ShowFixedUpdateTimer.Value)
         {
-            newTimerText += $" - LAG ({Utils.GetIGTFormatConditionalMs(tracker.TotalFixedTimeSpan)})";
+            newTimerText += $" - LAG ({tracker.TotalFixedTimeSpan.GetIGTFormatConditionalMs()})";
+        }
+
+        if (ModOptions.ShowTotTime.Value)
+        {
+            var totTime = TimeSpan.FromSeconds(saveGameData.gameTimeAlive);
+            var totTimeFormatted = $" ({SpeedRunTimer.TimeFormat(totTime)})";
+            newTimerText += $" - TOT{totTimeFormatted}";
         }
 
         self.validationLabel.text = self.validationLabel.text.Replace(existingTimerText, newTimerText);
@@ -187,7 +273,10 @@ public static partial class Hooks
         if (tracker == null) return;
 
 
-        var speedrunTimerText = Utils.GetIGTFormatConditionalMs(tracker.TotalFreeTimeSpan);
+        var speedrunTimerText = tracker.TotalFreeTimeSpan.GetIGTFormatConditionalMs();
+
+        var additionalTimersShown = 0;
+
 
         if (ModOptions.ShowOldTimer.Value)
         {
@@ -199,29 +288,39 @@ public static partial class Hooks
                 var oldTimerTimeSpan = TimeSpan.FromSeconds(oldTimeAlive + oldTimeLost);
 
                 speedrunTimerText += $"\nOLD ({SpeedRunTimer.TimeFormat(oldTimerTimeSpan)})";
+
+                additionalTimersShown++;
             }
         }
 
         if (ModOptions.ShowFixedUpdateTimer.Value)
         {
-            speedrunTimerText += $"\nLAG ({Utils.GetIGTFormatConditionalMs(tracker.TotalFixedTimeSpan)})";
+            speedrunTimerText += $"\nLAG ({tracker.TotalFixedTimeSpan.GetIGTFormatConditionalMs()})";
+
+            additionalTimersShown++;
         }
 
-        var timerPos = new Vector2(0.0f, 700.0f);
+        if (ModOptions.ShowTotTime.Value)
+        {
+            if (package?.saveState != null)
+            {
+                var totTime = package.saveState.totTime;
+
+                var totTimeSpan = TimeSpan.FromSeconds(totTime);
+
+                speedrunTimerText += $"\nTOT ({SpeedRunTimer.TimeFormat(totTimeSpan)})";
+
+                additionalTimersShown++;
+            }
+        }
+
+        var yOffset = additionalTimersShown > 1 ? -15.0f * (additionalTimersShown - 1) : 0.0f;
+
+        var timerPos = new Vector2(0.0f, 700.0f + yOffset);
         var timerSize = new Vector2(1366.0f, 20.0f);
 
-        var speedrunTimer = new MenuLabel(self, self.pages[0], speedrunTimerText, timerPos, timerSize, true, null);
+        var speedrunTimer = new MenuLabel(self, self.pages[0], speedrunTimerText, timerPos, timerSize, true);
 
         self.pages[0].subObjects.Add(speedrunTimer);
-
-        if (ModOptions.ShowOldTimer.Value || ModOptions.ShowFixedUpdateTimer.Value)
-        {
-            speedrunTimer.pos.y -= 15.0f;
-        }
-
-        if (ModOptions.ShowOldTimer.Value && ModOptions.ShowFixedUpdateTimer.Value)
-        {
-            speedrunTimer.pos.y -= 15.0f;
-        }
     }
 }

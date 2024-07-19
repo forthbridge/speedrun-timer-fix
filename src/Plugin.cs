@@ -20,7 +20,7 @@ public sealed class Plugin : BaseUnityPlugin
     public static string VERSION = "";
     public static string AUTHORS = "";
 
-    public static new ManualLogSource Logger { get; private set; } = null!;
+    public new static ManualLogSource Logger { get; private set; } = null!;
 
     public void OnEnable()
     {

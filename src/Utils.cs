@@ -9,8 +9,8 @@ public static class Utils
 {
     // Optional: Shows milliseconds depending on the mod's configuration
     // Conditional: Shows milliseconds if the Remix timer is enabled or speedrun verification is enabled
-    public static string GetIGTFormatOptionalMs(this TimeSpan timeSpan) => Custom.GetIGTFormat(timeSpan, ModOptions.ShowMilliseconds.Value);
-    public static string GetIGTFormatConditionalMs(this TimeSpan timeSpan) => Custom.GetIGTFormat(timeSpan, (ModManager.MMF && MMF.cfgSpeedrunTimer.Value) || Custom.rainWorld.options.validation);
+    public static string GetIGTFormatOptionalMs(this TimeSpan timeSpan) => timeSpan.GetIGTFormat(ModOptions.ShowMilliseconds.Value);
+    public static string GetIGTFormatConditionalMs(this TimeSpan timeSpan) => timeSpan.GetIGTFormat((ModManager.MMF && MMF.cfgSpeedrunTimer.Value) || Custom.rainWorld.options.validation);
 
 
     public static CampaignTimeTracker? GetCampaignTimeTracker() => (Custom.rainWorld?.processManager?.currentMainLoop as RainWorldGame)?.GetCampaignTimeTracker();
