@@ -31,6 +31,7 @@ public static partial class Hooks
             self.fade = 0.0f;
         }
 
+
         orig(self);
 
 
@@ -50,13 +51,14 @@ public static partial class Hooks
 
             if (game != null && game.IsStorySession)
             {
-                var oldTiming = TimeSpan.FromSeconds(
-                    game.GetStorySession.saveState.totTime +
-                    game.GetStorySession.saveState.deathPersistentSaveData.deathTime +
-                    game.GetStorySession.playerSessionRecords[0].time / 40.0f +
-                    game.GetStorySession.playerSessionRecords[0].playerGrabbedTime / 40.0f);
-                
-                self.timeLabel.text += $"\nOLD ({SpeedRunTimer.TimeFormat(oldTiming)})";
+                var oldTime = game.GetStorySession.saveState.totTime
+                              + game.GetStorySession.saveState.deathPersistentSaveData.deathTime
+                              + game.GetStorySession.playerSessionRecords[0].time / 40
+                              + game.GetStorySession.playerSessionRecords[0].playerGrabbedTime / 40;
+
+                var oldTimeSpan = TimeSpan.FromSeconds(oldTime);
+
+                self.timeLabel.text += $"\nOLD ({SpeedRunTimer.TimeFormat(oldTimeSpan)})";
 
                 additionalTimersShown++;
             }
@@ -75,7 +77,8 @@ public static partial class Hooks
 
             if (game != null && game.IsStorySession)
             {
-                var totTime = game.GetStorySession.saveState.totTime;
+                var totTime = game.GetStorySession.saveState.totTime
+                              + game.GetStorySession.playerSessionRecords[0].time / 40;
 
                 var totTimeSpan = TimeSpan.FromSeconds(totTime);
 
@@ -110,7 +113,7 @@ public static partial class Hooks
                 break;
 
             case "Top Left":
-                self.pos.x += -(screenSize.x / 2.0f) + 1252.0f;
+                self.pos.x += -(screenSize.x / 2.0f) + 125.0f;
                 break;
 
             case "Top Right":
@@ -153,6 +156,26 @@ public static partial class Hooks
         if (ModOptions.TimerPosition.Value == "Bottom Left" && self.hud.karmaMeter.fade > 0.0f)
         {
             self.pos.y += 65.0f;
+
+            if (additionalTimersShown > 1)
+            {
+                self.pos.y += 15.0f;
+            }
+
+            if (Utils.RainWorldGame?.GamePaused == true)
+            {
+                self.pos.y += 55.0f;
+            }
+        }
+
+        if (ModOptions.TimerPosition.Value == "Bottom Right" && ((self.hud.karmaMeter.fade > 0.0f && ModManager.JollyCoop) || (Utils.RainWorldGame?.GamePaused == true)))
+        {
+            self.pos.y += 45.0f;
+
+            if (additionalTimersShown > 1)
+            {
+                self.pos.y += 15.0f;
+            }
         }
     }
 
